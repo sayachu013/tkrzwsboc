@@ -74,8 +74,7 @@
                     <span>👥 登録済みの大人・講師連絡先リスト</span>
                     <span id="teacherAccordionIcon" class="text-[10px] transform transition-transform duration-200">▼ Expand</span>
                 </button>
-                <div id="teacherAccordionContent" class="hidden p-3 bg-white space-y-2 max-h-52 overflow-y-auto border-t border-slate-200">
-                    </div>
+                <div id="teacherAccordionContent" class="hidden p-3 bg-white space-y-2 max-h-52 overflow-y-auto border-t border-slate-200"></div>
             </div>
 
             <div class="flex gap-2 pt-1">
@@ -101,8 +100,7 @@
                 </div>
                 <div class="text-[11px] text-slate-500 space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                     <div id="detStaffName" class="font-medium">担当：未定</div>
-                    
-                    <div class="flex items-center gap-1.5 pt-1.5 border-t border-slate-200/60">
+                    <div class="flex items-center gap-1.5 mt-1 pt-1 border-t border-slate-200/60">
                         <span class="font-bold text-slate-600 whitespace-nowrap">👨‍🏫 担当講師:</span>
                         <select id="detTeacherSelect" onchange="assignTeacherToGenre()" class="flex-1 bg-white border border-slate-300 rounded px-1 py-0.5 text-[11px] cursor-pointer min-w-0 font-medium">
                             <option value="">-- 一覧から選んで割り当て --</option>
@@ -233,32 +231,40 @@
                 renderGlobalSchedules();
                 renderGlobalTaskList();
                 renderDashboardTasks();
-                renderFrontTeacherList(); // ★新設：メイン画面のアコーディオンリストを描画
+                renderFrontTeacherList();
                 if (currentGenreId) openGenreDetail(currentGenreId);
                 showLoading(false);
             }).catch(err => { console.error(err); showLoading(false); });
         }
 
+        // 💡【重要修正】時差に影響されない安全な日付クレンジング処理
         function cleanDate(dateStr) {
             if (!dateStr) return '未定';
             const s = String(dateStr);
-            if (s.includes('T')) return s.split('T')[0].replace(/-/g, '/');
-            return s.replace(/-/g, '/');
+            
+            // もし「T15:00:00...」のようなISO表記や、タイムゾーン情報が含まれる場合
+            if (s.includes('T') || s.includes('GMT') || s.includes('Z')) {
+                const d = new Date(s);
+                // 有効な日付オブジェクトに変換できた場合、日本時間(JST)ベースで年月を正しく取得
+                if (!isNaN(d.getTime())) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${y}/${m}/${day}`;
+                }
+            }
+            
+            // 既にハイフン区切り(2026-06-10)などの場合はスラッシュに一発変換
+            return s.split(' ')[0].replace(/-/g, '/');
         }
 
-        // 💡【新機能】トップ画面の講師アコーディオンメニューの開閉制御
         function toggleTeacherAccordion() {
             const content = document.getElementById('teacherAccordionContent');
             const icon = document.getElementById('teacherAccordionIcon');
             content.classList.toggle('hidden');
-            if (content.classList.contains('hidden')) {
-                icon.innerText = '▼ Expand';
-            } else {
-                icon.innerText = '▲ Collapse';
-            }
+            icon.innerText = content.classList.contains('hidden') ? '▼ Expand' : '▲ Collapse';
         }
 
-        // 💡【新機能】メイン画面用の講師連絡先リストを描画するロジック
         function renderFrontTeacherList() {
             const area = document.getElementById('teacherAccordionContent');
             area.innerHTML = '';
@@ -273,7 +279,7 @@
                             <span class="font-bold text-slate-800">👨‍🏫 ${escapeHtml(t.name)}</span>
                             <span class="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded text-[9px]">${escapeHtml(t.genre || '全般')}</span>
                         </div>
-                        <div class="text-slate-600 mt-0.5">📱 連絡先: <span class="font-medium text-slate-900 selection:bg-yellow-200">${escapeHtml(t.contact || '未登録')}</span></div>
+                        <div class="text-slate-600 mt-0.5">📱 連絡先: <span class="font-medium text-slate-900">${escapeHtml(t.contact || '未登録')}</span></div>
                         ${t.note ? `<div class="text-slate-500 text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-100 mt-1">📝 ${escapeHtml(t.note)}</div>` : ''}
                     </div>
                 `;
@@ -411,10 +417,7 @@
             const b = document.getElementById('detStatusBadge'); b.innerText = g.status;
             b.className = `text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600"}`;
             
-            // 講師アサイン状態の同期
             document.getElementById('detTeacherSelect').value = g.teacherId || '';
-            
-            // 💡【新機能】部屋内に担当講師の連絡先・メモをその場でパッと表示する連動ロジック
             const contactBox = document.getElementById('detTeacherContactBox');
             if (g.teacherId) {
                 const tea = DB.teachers.find(t => t.id === g.teacherId);
@@ -562,6 +565,7 @@
             if(res==='講師') DB.teachers = DB.teachers.filter(t => t.id !== id);
             if(res==='スタッフ') DB.staffs = DB.staffs.filter(s => s.id !== id);
             if(res==='タスク') DB.tasks = DB.tasks ? DB.tasks.filter(t => t.id !== id) : [];
+            
             if (currentGenreId) openGenreDetail(currentGenreId);
             renderGlobalSchedules(); renderAdminTeacherList(); renderAdminStaffList(); renderGlobalTaskList(); renderDashboardTasks(); updateDropdowns();
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: res, action: "delete", id }) }).then(() => refreshAllData(true)); 
