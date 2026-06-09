@@ -35,7 +35,7 @@
                 </h3>
                 <div class="flex gap-2 mb-2">
                     <select id="staffFilterDashboard" onchange="renderDashboardTasks()" class="w-full bg-white border border-rose-200 rounded p-1 text-xs font-bold cursor-pointer">
-                        <option value="">👤 全スタッフのタスクを俯瞰</option>
+                        <option value="">👤 全スタッフのタスクを確認</option>
                     </select>
                 </div>
                 <div id="dashboardTaskList" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-[11px]"></div>
@@ -183,7 +183,7 @@
                 </div>
                 <div id="adminTeacherArea" class="hidden space-y-3">
                     <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-2">
-                        <input type="text" id="newTeaName" placeholder="氏名" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaContact" placeholder="連絡先" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaGenre" placeholder="対応ジャン" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaNote" placeholder="メモ" class="w-full bg-white border p-1.5 rounded text-xs">
+                        <input type="text" id="newTeaName" placeholder="氏名" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaContact" placeholder="連絡先" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaGenre" placeholder="対応ジャンル" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaNote" placeholder="メモ" class="w-full bg-white border p-1.5 rounded text-xs">
                         <button onclick="addTeacherSubmit()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer">講師を登録</button>
                     </div>
                     <div id="adminTeacherList" class="space-y-1 max-h-40 overflow-y-auto"></div>
@@ -257,7 +257,7 @@
             logSelect.innerHTML = '<option value="管理者">管理者</option>';
             taskStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
             if(globalStaffSelect) globalStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
-            dashStaffSelect.innerHTML = '<option value="">👤 全スタッフのタスクを俯瞰</option>';
+            dashStaffSelect.innerHTML = '<option value="">👤 全スタッフのタスクを確認</option>';
             
             if (DB.staffs) {
                 DB.staffs.forEach(s => {
