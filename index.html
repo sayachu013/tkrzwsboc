@@ -9,19 +9,19 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-12 text-slate-800">
 
-    <header class="bg-emerald-600 text-white flex justify-between items-center px-4 py-4 shadow-md sticky top-0 z-50">
-        <div class="flex flex-col">
-            <span class="font-bold text-base tracking-wide">🌲 緑町base 総合運営マネージャー</span>
-            <span class="text-[10px] text-emerald-100 font-semibold">タスク・スケジュール・スタッフ連動アプリ</span>
+    <header class="bg-emerald-600 text-white flex justify-between items-center px-3 py-3.5 shadow-md sticky top-0 z-50 gap-2">
+        <div class="flex flex-col min-w-0 flex-1">
+            <span class="font-bold text-sm sm:text-base tracking-wide truncate">🌲 緑町base 総合運営マネージャー</span>
+            <span class="text-[9px] sm:text-[10px] text-emerald-100 font-semibold truncate">タスク・スケジュール・スタッフ連動</span>
         </div>
-        <button onclick="toggleAdminModal()" class="bg-emerald-700 hover:bg-emerald-800 text-xs font-bold py-1.5 px-3 rounded-lg cursor-pointer">👥 マスター管理</button>
+        <button onclick="toggleAdminModal()" class="bg-emerald-700 hover:bg-emerald-800 text-[11px] sm:text-xs font-bold py-1.5 px-2.5 rounded-lg cursor-pointer shrink-0 whitespace-nowrap shadow-2xs">
+            👥 マスター管理
+        </button>
     </header>
 
     <main class="max-w-md mx-auto px-4 mt-5">
-        <!-- ================= 一覧画面（トップビュー） ================= -->
         <div id="listViewArea" class="space-y-5">
             
-            <!-- 【リマインドボード】スタッフ別ToDo状況（共通タスクもここに集約されます） -->
             <div class="bg-rose-50 border-2 border-rose-200 rounded-xl p-4 shadow-xs">
                 <h3 class="text-xs font-bold text-rose-800 flex items-center gap-1.5 border-b border-rose-200 pb-2 mb-2">
                     📢 【仕事アサイン・リマインド】スタッフ別ToDo状況
@@ -34,14 +34,11 @@
                 <div id="dashboardTaskList" class="space-y-2 max-h-44 overflow-y-auto pr-1 text-[11px]"></div>
             </div>
 
-            <!-- ★【新機能】全体企画に関わる共通タスク（イベントに紐づかない全体業務） -->
             <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 shadow-xs space-y-3">
                 <h3 class="text-xs font-bold text-indigo-800 flex items-center gap-1.5 border-b border-indigo-200 pb-2">
                     📢 企画全体に関わる共通タスク・仕事振り
                 </h3>
-                <div id="globalTaskList" class="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs">
-                    <!-- 共通タスク一覧 -->
-                </div>
+                <div id="globalTaskList" class="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs"></div>
                 
                 <div class="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-2 text-[11px]">
                     <span class="font-bold text-indigo-700 block">➕ 共通タスク（全体業務）を新しくアサイン</span>
@@ -60,13 +57,11 @@
                 </div>
             </div>
 
-            <!-- 全体横断イベントカレンダー -->
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <h3 class="text-xs font-bold text-amber-800 border-b border-amber-200 pb-2 mb-2">📅 【全体スケジュール】確定イベント一覧</h3>
                 <div id="globalScheduleList" class="space-y-2 max-h-28 overflow-y-auto pr-1 text-[11px] text-amber-950"></div>
             </div>
 
-            <!-- 検索・絞り込み -->
             <div class="flex gap-2">
                 <input type="text" id="searchInp" oninput="renderGenreList()" placeholder="ジャンル、担当スタッフ、講師名で検索..." class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
                 <select id="statusFilter" onchange="renderGenreList()" class="bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm cursor-pointer">
@@ -74,18 +69,15 @@
                 </select>
             </div>
 
-            <!-- ジャンルカード一覧 -->
             <div>
                 <p class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider px-1">講義ジャンル・個別プロジェクト（タップで部屋へ）</p>
                 <div id="genreGrid" class="space-y-3"></div>
             </div>
         </div>
 
-        <!-- ================= 個別部屋画面（カルテ） ================= -->
         <div id="detailViewArea" class="hidden space-y-5">
             <button onclick="backToListView()" class="text-sm font-bold text-emerald-600 bg-white border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-50 cursor-pointer">⬅ 一覧に戻る</button>
             
-            <!-- ジャンル基本情報 & 講師アサインメニュー -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
                 <div class="flex justify-between items-start">
                     <h2 id="detTitle" class="text-lg font-bold text-slate-900 leading-tight"></h2>
@@ -115,7 +107,6 @@
                 </div>
             </div>
 
-            <!-- イベント別準備タスク管理メニュー -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
                 <h3 class="font-bold text-sm text-slate-800 flex items-center gap-1">📋 掲示物作成・準備タスク・仕事振り管理</h3>
                 <div id="detTaskList" class="space-y-2 text-xs"></div>
@@ -137,7 +128,6 @@
                 </div>
             </div>
 
-            <!-- イベントスケジュール -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
                 <h3 class="font-bold text-sm text-slate-800">🗓 開催日時・イベントスケジュール設定</h3>
                 <div id="detScheduleList" class="space-y-2 text-xs"></div>
@@ -152,7 +142,6 @@
                 </div>
             </div>
 
-            <!-- タイムライン履歴 -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
                 <h3 class="font-bold text-sm text-slate-800">💬 交渉・進捗タイムライン履歴</h3>
                 <div id="detLogTimeline" class="space-y-3 max-h-40 overflow-y-auto pr-1 text-xs"></div>
@@ -165,7 +154,6 @@
         </div>
     </main>
 
-    <!-- マスター管理モーダル -->
     <div id="adminModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 shadow-2xl">
             <div class="px-5 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -188,7 +176,7 @@
                 </div>
                 <div id="adminTeacherArea" class="hidden space-y-3">
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-                        <input type="text" id="newTeaName" placeholder="氏名"><input type="text" id="newTeaContact" placeholder="連絡先"><input type="text" id="newTeaGenre" placeholder="ジャンル"><input type="text" id="newTeaNote" placeholder="メモ">
+                        <input type="text" id="newTeaName" placeholder="氏名"><input type="text" id="newTeaContact" placeholder="連絡先"><input type="text" id="newTeaGenre" placeholder="対応ジャンル"><input type="text" id="newTeaNote" placeholder="メモ">
                         <button onclick="addTeacherSubmit()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer">講師を登録</button>
                     </div>
                     <div id="adminTeacherList" class="space-y-1 max-h-40 overflow-y-auto"></div>
@@ -204,7 +192,6 @@
         </div>
     </div>
 
-    <!-- 制御スクリプト部 -->
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxA_vnFqSvbxsbgkj7HMu79L3jfEij0DVPKQvooiNLXICHLjRccQ2w2PqGbhKz5xJwtbQ/exec";
         let DB = { genres: [], schedules: [], logs: [], teachers: [], staffs: [], tasks: [] };
@@ -219,7 +206,7 @@
                 updateDropdowns();
                 renderGenreList();
                 renderGlobalSchedules();
-                renderGlobalTaskList(); // ★新設：全体タスク表示
+                renderGlobalTaskList();
                 renderDashboardTasks();
             }).catch(err => console.error(err));
         }
@@ -261,7 +248,6 @@
             }
         }
 
-        // トップのリマインドボード描画（個別イベントタスク＋全体共通タスクを綺麗に一本化）
         function renderDashboardTasks() {
             const area = document.getElementById('dashboardTaskList');
             const filterStaff = document.getElementById('staffFilterDashboard').value;
@@ -313,7 +299,6 @@
             if(count === 0) area.innerHTML = '<p class="text-slate-400 italic text-center py-2">該当するタスクはありません</p>';
         }
 
-        // ★新設：ホーム画面用 全体共通タスクリストの描画
         function renderGlobalTaskList() {
             const area = document.getElementById('globalTaskList');
             area.innerHTML = '';
@@ -422,7 +407,6 @@
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: log }) });
         }
 
-        // 💡 【機能改善】イベント別の準備タスクを追加
         function addNewTask() {
             const title = document.getElementById('newTaskTitle').value; const staff = document.getElementById('newTaskStaff').value; const dl = document.getElementById('newTaskDeadline').value;
             if(!title) return;
@@ -430,7 +414,6 @@
             savePostAsync("タスク", newTask, () => { if(!DB.tasks) DB.tasks = []; DB.tasks.push(newTask); openGenreDetail(currentGenreId); renderDashboardTasks(); document.getElementById('newTaskTitle').value = ''; });
         }
 
-        // ★【新機能】全体共通のタスクを追加
         function addGlobalTask() {
             const title = document.getElementById('newGlobalTaskTitle').value;
             const staff = document.getElementById('newGlobalTaskStaff').value;
@@ -441,8 +424,8 @@
             savePostAsync("タスク", newTask, () => {
                 if(!DB.tasks) DB.tasks = [];
                 DB.tasks.push(newTask);
-                renderGlobalTaskList(); // 共通一覧を即時更新
-                renderDashboardTasks();  // リマインドボードを即時更新
+                renderGlobalTaskList();
+                renderDashboardTasks();
                 document.getElementById('newGlobalTaskTitle').value = '';
             });
         }
