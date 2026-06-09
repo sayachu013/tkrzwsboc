@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>緑町base リアル・オープンキャンパス管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>body { font-family: 'Helvetica Neue', Arial, sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-12 text-slate-800">
+
+    <header class="bg-emerald-600 text-white flex justify-between items-center px-4 py-4 shadow-md sticky top-0 z-50">
+        <div class="flex flex-col">
+            <span class="font-bold text-base tracking-wide">🌲 緑町base リアル・オープンキャンパス</span>
+            <span class="text-[10px] text-emerald-100 font-semibold">総合一元管理システム</span>
+        </div>
+        <button onclick="toggleAdminModal()" class="bg-emerald-700 hover:bg-emerald-800 text-xs font-bold py-1.5 px-3 rounded-lg cursor-pointer">👥 マスター管理</button>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 mt-5">
+        <div id="listViewArea" class="space-y-5">
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                <h3 class="text-xs font-bold text-amber-800 border-b border-amber-200 pb-2 mb-2">📅 【全体俯瞰】直近のイベントスケジュール</h3>
+                <div id="globalScheduleList" class="space-y-2 max-h-40 overflow-y-auto pr-1 text-[11px] text-amber-950"></div>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="searchInp" oninput="renderGenreList()" placeholder="ジャンル名、担当者で検索..." class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
+                <select id="statusFilter" onchange="renderGenreList()" class="bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm cursor-pointer">
+                    <option value="">全状況</option><option value="未着手">未着手</option><option value="交渉中">交渉中</option><option value="確定">確定</option><option value="実施済">実施済</option>
+                </select>
+            </div>
+
+            <div>
+                <p class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider px-1">講義ジャンル・担当案件（タップで個別カルテへ）</p>
+                <div id="genreGrid" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <div id="detailViewArea" class="hidden space-y-5">
+            <button onclick="backToListView()" class="text-sm font-bold text-emerald-600 bg-white border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-50 cursor-pointer">⬅ 一覧に戻る</button>
+            
+            <div class="bg-white rounded-2xl p-5 border border-slate-200">
+                <div class="flex justify-between items-start mb-2">
+                    <h2 id="detTitle" class="text-lg font-bold text-slate-900 leading-tight"></h2>
+                    <span id="detStatusBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap"></span>
+                </div>
+                <div id="detStaffName" class="text-xs text-slate-500 mb-4 pb-2 border-b border-slate-100"></div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">📦 概要・必要備品・メモ</label>
+                    <textarea id="detMemo" rows="4" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-emerald-500" placeholder="必要な材料費や大人の帯同予定など..."></textarea>
+                    <div class="flex justify-between items-center pt-1">
+                        <div class="flex gap-1">
+                            <button onclick="changeStatus('交渉中')" class="bg-amber-50 text-amber-700 text-[10px] px-2 py-1 rounded border border-amber-200 cursor-pointer">交渉中</button>
+                            <button onclick="changeStatus('確定')" class="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-1 rounded border border-emerald-200 cursor-pointer">確定</button>
+                            <button onclick="changeStatus('実施済')" class="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded border border-blue-200 cursor-pointer">実施済</button>
+                        </div>
+                        <button onclick="saveGenreMemo()" class="bg-emerald-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg cursor-pointer hover:bg-emerald-700">💾 保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
+                <h3 class="font-bold text-sm text-slate-800">🗓 開催イベントスケジュール設定</h3>
+                <div id="detScheduleList" class="space-y-2 text-xs"></div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="date" id="newSchedDate" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
+                        <input type="text" id="newSchedTime" placeholder="時間帯" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
+                    </div>
+                    <input type="text" id="newSchedLoc" placeholder="開催場所" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
+                    <input type="text" id="newSchedNote" placeholder="備考" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
+                    <button onclick="addEventSchedule()" class="w-full bg-emerald-600 text-white font-bold py-1.5 rounded-lg cursor-pointer hover:bg-emerald-700">スケジュールを追加</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
+                <h3 class="font-bold text-sm text-slate-800">💬 交渉・進捗タイムライン履歴</h3>
+                <div id="detLogTimeline" class="space-y-3 max-h-52 overflow-y-auto pr-1 text-xs"></div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <div class="flex gap-2">
+                        <select id="logUser" class="bg-white border border-slate-300 rounded p-1 text-xs cursor-pointer"><option value="管理者">管理者</option></select>
+                        <input type="text" id="logText" placeholder="出来事を時系列に記録..." class="flex-1 bg-white border border-slate-300 rounded p-1 text-xs">
+                    </div>
+                    <button onclick="saveNewLog()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer hover:bg-slate-800">タイムラインに記録</button>
+                </div>
+            </div>
+            <div class="text-right"><button onclick="deleteCurrentGenre()" class="text-[11px] text-red-500 font-bold hover:underline cursor-pointer">⚠️ ジャンル自体を削除する</button></div>
+        </div>
+    </main>
+
+    <div id="adminModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 shadow-2xl">
+            <div class="px-5 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-sm text-slate-800">⚙️ 管理者用マスターパネル</h3>
+                <button onclick="toggleAdminModal()" class="text-slate-400 text-lg cursor-pointer">✕</button>
+            </div>
+            <div class="flex border-b border-slate-200 text-xs text-center">
+                <button id="tabGenreBtn" onclick="switchAdminTab('genre')" class="flex-1 py-3 font-bold text-emerald-600 border-b-2 border-emerald-600 cursor-pointer">📦 ジャンル追加</button>
+                <button id="tabTeacherBtn" onclick="switchAdminTab('teacher')" class="flex-1 py-3 font-bold text-slate-500 border-b-2 border-transparent cursor-pointer">👨‍🏫 大人・講師マスタ</button>
+                <button id="tabStaffBtn" onclick="switchAdminTab('staff')" class="flex-1 py-3 font-bold text-slate-500 border-b-2 border-transparent cursor-pointer">👥 スタッフマスタ</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-4 text-xs">
+                <div id="adminGenreArea" class="space-y-2.5">
+                    <input type="text" id="newGenreName" placeholder="ジャンル名" class="w-full bg-white border border-slate-300 rounded-lg p-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="newGenreStaff" class="w-full bg-white border border-slate-300 rounded-lg p-2 cursor-pointer"><option value="未定">未定</option></select>
+                        <select id="newGenreStatus" class="w-full bg-white border border-slate-300 rounded-lg p-2 cursor-pointer"><option value="未着手">未着手</option><option value="交渉中">交渉中</option><option value="確定">確定</option></select>
+                    </div>
+                    <button onclick="addGenreSubmit()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-lg cursor-pointer">ジャンルを追加登録</button>
+                </div>
+                <div id="adminTeacherArea" class="hidden space-y-3">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                        <input type="text" id="newTeaName" placeholder="氏名" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newTeaContact" placeholder="連絡先" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newTeaGenre" placeholder="ジャンル" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newTeaNote" placeholder="メモ" class="w-full bg-white border border-slate-300 rounded p-1.5">
+                        <button onclick="addTeacherSubmit()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer">講師を登録</button>
+                    </div>
+                    <div id="adminTeacherList" class="space-y-1 max-h-40 overflow-y-auto"></div>
+                </div>
+                <div id="adminStaffArea" class="hidden space-y-3">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                        <input type="text" id="newStaffName" placeholder="スタッフ名" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newStaffRole" placeholder="役割・学年" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newStaffNote" placeholder="備考" class="w-full bg-white border border-slate-300 rounded p-1.5">
+                        <button onclick="addStaffSubmit()" class="w-full bg-emerald-600 text-white font-bold py-1.5 rounded-lg cursor-pointer">スタッフマスターに登録</button>
+                    </div>
+                    <div id="adminStaffList" class="space-y-1 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxA_vnFqSvbxsbgkj7HMu79L3jfEij0DVPKQvooiNLXICHLjRccQ2w2PqGbhKz5xJwtbQ/exec";
+        let DB = { genres: [], schedules: [], logs: [], teachers: [], staffs: [] };
+        let currentGenreId = null;
+
+        window.addEventListener('DOMContentLoaded', () => { refreshAllData(); });
+
+        function refreshAllData(quiet = false) {
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "fetchAllData" }) })
+            .then(res => res.json()).then(data => {
+                DB = data;
+                updateDropdowns();
+                renderGenreList();
+                renderGlobalSchedules();
+                if (currentGenreId) openGenreDetail(currentGenreId);
+            }).catch(err => {
+                console.error(err);
+                if(!quiet) alert("データ取得に失敗しました。");
+            });
+        }
+
+        function updateDropdowns() {
+            const genreSelect = document.getElementById('newGenreStaff');
+            const logSelect = document.getElementById('logUser');
+            genreSelect.innerHTML = '<option value="未定">未定</option>';
+            logSelect.innerHTML = '<option value="管理者">管理者</option>';
+            if (DB.staffs) {
+                DB.staffs.forEach(s => {
+                    genreSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
+                    logSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
+                });
+            }
+        }
+
+        function renderGenreList() {
+            const grid = document.getElementById('genreGrid');
+            const search = document.getElementById('searchInp').value.toLowerCase();
+            const filter = document.getElementById('statusFilter').value;
+            grid.innerHTML = '';
+            const filtered = DB.genres ? DB.genres.filter(g => (g.name.toLowerCase().includes(search) || g.staff.toLowerCase().includes(search)) && (filter === '' || g.status === filter)) : [];
+            if (filtered.length === 0) { grid.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs bg-white rounded-xl border border-slate-200">該当案件なし</div>'; return; }
+            filtered.forEach(g => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl p-4 shadow-2xs border border-slate-200 hover:border-emerald-400 cursor-pointer";
+                card.onclick = () => openGenreDetail(g.id);
+                let cls = g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600";
+                card.innerHTML = `<div class="flex justify-between items-start gap-2 mb-1"><h4 class="font-bold text-sm text-slate-900">${escapeHtml(g.name)}</h4><span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${cls}">${escapeHtml(g.status)}</span></div><div class="flex justify-between items-center text-[11px] text-slate-500"><span>👤 担当: ${escapeHtml(g.staff)}</span><span class="text-emerald-600 font-semibold text-[10px]">詳細 ➔</span></div>`;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderGlobalSchedules() {
+            const area = document.getElementById('globalScheduleList'); area.innerHTML = '';
+            if (!DB.schedules || DB.schedules.length === 0) { area.innerHTML = '<p class="text-slate-400 italic text-center py-1">未設定</p>'; return; }
+            const sorted = [...DB.schedules].sort((a, b) => new Date(a.date) - new Date(b.date));
+            sorted.forEach(s => {
+                const g = DB.genres.find(i => i.id === s.genreId);
+                area.innerHTML += `<div class="flex items-start gap-2 border-b border-amber-100 pb-1 last:border-0"><span class="bg-amber-200 text-amber-800 font-bold px-1 rounded text-[9px]">${escapeHtml(s.date)}</span><div class="flex-1"><strong>${escapeHtml(g?g.name:'?')}</strong> <span class="text-slate-600">(${escapeHtml(s.time)}) @${escapeHtml(s.location)}</span></div></div>`;
+            });
+        }
+
+        function openGenreDetail(id) {
+            currentGenreId = id; const g = DB.genres.find(item => item.id === id); if (!g) return;
+            document.getElementById('listViewArea').classList.add('hidden'); document.getElementById('detailViewArea').classList.remove('hidden');
+            document.getElementById('detTitle').innerText = g.name; document.getElementById('detStaffName').innerText = `👤 担当スタッフ： ${g.staff}`; document.getElementById('detMemo').value = g.memo || '';
+            const b = document.getElementById('detStatusBadge'); b.innerText = g.status;
+            let cls = g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600";
+            b.className = `text-[11px] font-bold px-2.5 py-0.5 rounded-full ${cls}`;
+            
+            const sArea = document.getElementById('detScheduleList'); sArea.innerHTML = '';
+            DB.schedules.filter(s => s.genreId === id).forEach(s => {
+                sArea.innerHTML += `<div class="bg-slate-50 border border-slate-200 rounded-lg p-2 flex justify-between items-center"><div><span class="font-bold text-emerald-700">📅 ${escapeHtml(s.date)} (${escapeHtml(s.time)})</span><br><span class="text-slate-600">📍 ${escapeHtml(s.location)}</span></div><button onclick="delClick('スケジュール','${s.id}')" class="text-red-400 font-bold text-[11px] cursor-pointer">削除</button></div>`;
+            });
+
+            const lArea = document.getElementById('detLogTimeline'); lArea.innerHTML = '';
+            DB.logs.filter(l => l.genreId === id).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(l => {
+                lArea.innerHTML += `<div class="border-l-2 border-emerald-500 pl-3 py-0.5 relative"><div class="text-[10px] text-slate-400"><span class="font-bold text-slate-600">${escapeHtml(l.user)}</span> <span>${escapeHtml(l.date)}</span></div><div class="text-xs text-slate-700 font-medium">${escapeHtml(l.text)}</div></div>`;
+            });
+        }
+
+        function backToListView() { currentGenreId = null; document.getElementById('detailViewArea').classList.add('hidden'); document.getElementById('listViewArea').classList.remove('hidden'); refreshAllData(true); }
+        
+        // ★神速パッチコア：バックグラウンド非同期通信関数
+        function savePostAsync(resource, data, onPreExecute) {
+            // 先取りで画面をサッと更新
+            if(onPreExecute) onPreExecute();
+            
+            // 裏でGoogleと1秒通信
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource, action: "save", data }) })
+            .then(res => res.json()).then(res => {
+                if(!res.success) { alert("通信エラーが発生しました。"); refreshAllData(); }
+            }).catch(err => { console.error(err); refreshAllData(); });
+        }
+
+        function saveGenreMemo() {
+            const g = DB.genres.find(item => item.id === currentGenreId); if (!g) return;
+            g.memo = document.getElementById('detMemo').value;
+            savePostAsync("ジャンル", g, () => { alert("保存しました(裏で同期中)"); });
+        }
+
+        function changeStatus(st) {
+            const g = DB.genres.find(item => item.id === currentGenreId); if (!g) return;
+            g.status = st;
+            
+            // システム自動タイムラインデータ生成
+            const systemLog = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `ステータスを【${st}】に変更。` };
+            
+            savePostAsync("ジャンル", g, () => {
+                DB.logs.push(systemLog); // ログを先取り追加
+                openGenreDetail(currentGenreId); // 画面をすぐ切り替え
+            });
+            // サーバー側にもログを裏で送信
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: systemLog }) });
+        }
+
+        function addEventSchedule() {
+            const d = document.getElementById('newSchedDate').value; const t = document.getElementById('newSchedTime').value; const l = document.getElementById('newSchedLoc').value; const n = document.getElementById('newSchedNote').value;
+            if (!d || !l) { alert("日付と場所は必須"); return; }
+            
+            const newSched = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: d, time: t||"10:00-17:00", location: l, note: n };
+            const systemLog = { id: "TMP_L_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `📅 スケジュール追加: ${d}` };
+
+            savePostAsync("スケジュール", newSched, () => {
+                DB.schedules.push(newSched);
+                DB.logs.push(systemLog);
+                openGenreDetail(currentGenreId);
+                renderGlobalSchedules();
+                document.getElementById('newSchedDate').value = ''; document.getElementById('newSchedTime').value = ''; document.getElementById('newSchedLoc').value = ''; document.getElementById('newSchedNote').value = '';
+            });
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: systemLog }) });
+        }
+
+        function saveNewLog() {
+            const u = document.getElementById('logUser').value; const t = document.getElementById('logText').value; if(!t) return;
+            const newLog = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: u, text: t };
+            
+            savePostAsync("履歴", newLog, () => {
+                DB.logs.push(newLog);
+                openGenreDetail(currentGenreId);
+                document.getElementById('logText').value = '';
+            });
+        }
+
+        function addGenreSubmit() {
+            const name = document.getElementById('newGenreName').value; const staff = document.getElementById('newGenreStaff').value; const status = document.getElementById('newGenreStatus').value; if(!name) return;
+            const newGenre = { id: "TMP_" + Date.now(), name, staff, status, memo: "" };
+            
+            savePostAsync("ジャンル", newGenre, () => {
+                DB.genres.push(newGenre);
+                renderGenreList();
+                document.getElementById('newGenreName').value = ''; toggleAdminModal();
+            });
+        }
+
+        function addTeacherSubmit() {
+            const name = document.getElementById('newTeaName').value; const contact = document.getElementById('newTeaContact').value; const genre = document.getElementById('newTeaGenre').value; const note = document.getElementById('newTeaNote').value; if(!name) return;
+            const newTea = { id: "TMP_" + Date.now(), name, contact, genre, note };
+            
+            savePostAsync("講師", newTea, () => {
+                DB.teachers.push(newTea);
+                renderAdminTeacherList();
+                document.getElementById('newTeaName').value = ''; document.getElementById('newTeaContact').value = ''; document.getElementById('newTeaGenre').value = ''; document.getElementById('newTeaNote').value = '';
+            });
+        }
+
+        function addStaffSubmit() {
+            const name = document.getElementById('newStaffName').value; const role = document.getElementById('newStaffRole').value; const note = document.getElementById('newStaffNote').value; if(!name) return;
+            const newStaff = { id: "TMP_" + Date.now(), name, role, note };
+            
+            savePostAsync("スタッフ", newStaff, () => {
+                DB.staffs.push(newStaff);
+                updateDropdowns();
+                renderAdminStaffList();
+                document.getElementById('newStaffName').value = ''; document.getElementById('newStaffRole').value = ''; document.getElementById('newStaffNote').value = '';
+            });
+        }
+
+        function renderAdminStaffList() {
+            const l = document.getElementById('adminStaffList'); l.innerHTML = '';
+            if(!DB.staffs || DB.staffs.length === 0) { l.innerHTML = '<p class="text-slate-400 italic text-center py-1">未登録</p>'; return; }
+            DB.staffs.forEach(s => { l.innerHTML += `<div class="p-1.5 bg-slate-50 rounded border text-[10px] flex justify-between items-center"><div><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.role)})</div><button onclick="delClick('スタッフ','${s.id}')" class="text-red-500 font-bold px-1 cursor-pointer">削除</button></div>`; });
+        }
+
+        function renderAdminTeacherList() {
+            const l = document.getElementById('adminTeacherList'); l.innerHTML = '';
+            if(!DB.teachers || DB.teachers.length === 0) { l.innerHTML = '<p class="text-slate-400 italic text-center py-1">未登録</p>'; return; }
+            DB.teachers.forEach(t => { l.innerHTML += `<div class="p-1.5 bg-slate-50 rounded border text-[10px] flex justify-between items-center"><div><strong>${escapeHtml(t.name)}</strong> [${escapeHtml(t.genre)}]</div><button onclick="delClick('講師','${t.id}')" class="text-red-500 font-bold px-1 cursor-pointer">削除</button></div>`; });
+        }
+
+        function delClick(res, id) { 
+            if(!confirm("本当に削除しますか？")) return; 
+            // 削除も先取り反映
+            if(res==='スケジュール') DB.schedules = DB.schedules.filter(s => s.id !== id);
+            if(res==='講師') DB.teachers = DB.teachers.filter(t => t.id !== id);
+            if(res==='スタッフ') DB.staffs = DB.staffs.filter(s => s.id !== id);
+            
+            if (currentGenreId) openGenreDetail(currentGenreId);
+            renderGlobalSchedules(); renderAdminTeacherList(); renderAdminStaffList(); updateDropdowns();
+            
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: res, action: "delete", id }) })
+            .then(() => refreshAllData(true)); 
+        }
+        
+        function deleteCurrentGenre() { 
+            if(!confirm("案件自体を削除しますか？")) return; 
+            DB.genres = DB.genres.filter(g => g.id !== currentGenreId);
+            backToListView();
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "ジャンル", action: "delete", id: currentGenreId }) }); 
+        }
+        
+        function toggleAdminModal() { const m = document.getElementById('adminModal'); m.classList.toggle('hidden'); if(!m.classList.contains('hidden')) { renderAdminTeacherList(); renderAdminStaffList(); } }
+        
+        function switchAdminTab(tab) {
+            const tabs = ['genre', 'teacher', 'staff'];
+            tabs.forEach(t => {
+                document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`).className = t === tab ? "flex-1 py-3 font-bold text-emerald-600 border-b-2 border-emerald-600 cursor-pointer" : "flex-1 py-3 font-bold text-slate-500 border-b-2 border-transparent cursor-pointer";
+                document.getElementById(`admin${t.charAt(0).toUpperCase() + t.slice(1)}Area`).classList.toggle('hidden', t !== tab);
+            });
+            if(tab==='teacher') renderAdminTeacherList(); if(tab==='staff') renderAdminStaffList();
+        }
+
+        function fmtDt() { const n = new Date(); return `${n.getFullYear()}/${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
+        function escapeHtml(s) { return s ? String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : ''; }
+    </script>
+</body>
+</html>
