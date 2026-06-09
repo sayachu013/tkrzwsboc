@@ -35,7 +35,7 @@
                 </h3>
                 <div class="flex gap-2 mb-2">
                     <select id="staffFilterDashboard" onchange="renderDashboardTasks()" class="w-full bg-white border border-rose-200 rounded p-1 text-xs font-bold cursor-pointer">
-                        <option value="">👤 全スタッフのタスクを確認</option>
+                        <option value="">👤 全スタッフのタスクを俯瞰</option>
                     </select>
                 </div>
                 <div id="dashboardTaskList" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-[11px]"></div>
@@ -69,7 +69,16 @@
                 <div id="globalScheduleList" class="space-y-2 max-h-28 overflow-y-auto pr-1 text-[11px] text-amber-950"></div>
             </div>
 
-            <div class="flex gap-2">
+            <div class="bg-slate-100 border border-slate-300 rounded-xl shadow-2xs overflow-hidden">
+                <button onclick="toggleTeacherAccordion()" class="w-full bg-slate-200 hover:bg-slate-300/80 px-3 py-2 text-xs font-bold text-slate-700 flex justify-between items-center cursor-pointer transition">
+                    <span>👥 登録済みの大人・講師連絡先リスト</span>
+                    <span id="teacherAccordionIcon" class="text-[10px] transform transition-transform duration-200">▼ Expand</span>
+                </button>
+                <div id="teacherAccordionContent" class="hidden p-3 bg-white space-y-2 max-h-52 overflow-y-auto border-t border-slate-200">
+                    </div>
+            </div>
+
+            <div class="flex gap-2 pt-1">
                 <input type="text" id="searchInp" oninput="renderGenreList()" placeholder="ジャンル、担当スタッフ、講師名で検索..." class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-emerald-500">
                 <select id="statusFilter" onchange="renderGenreList()" class="bg-white border border-slate-300 rounded-lg px-1.5 py-1.5 text-xs cursor-pointer">
                     <option value="">全状況</option><option value="未着手">未着手</option><option value="交渉中">交渉中</option><option value="確定">確定</option><option value="実施済">実施済</option>
@@ -90,14 +99,16 @@
                     <h2 id="detTitle" class="text-base font-bold text-slate-900 leading-tight"></h2>
                     <span id="detStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"></span>
                 </div>
-                <div class="text-[11px] text-slate-500 space-y-1 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                <div class="text-[11px] text-slate-500 space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                     <div id="detStaffName" class="font-medium">担当：未定</div>
-                    <div class="flex items-center gap-1.5 mt-1 pt-1 border-t border-slate-200/60">
+                    
+                    <div class="flex items-center gap-1.5 pt-1.5 border-t border-slate-200/60">
                         <span class="font-bold text-slate-600 whitespace-nowrap">👨‍🏫 担当講師:</span>
-                        <select id="detTeacherSelect" onchange="assignTeacherToGenre()" class="flex-1 bg-white border border-slate-300 rounded px-1 py-0.5 text-[11px] cursor-pointer min-w-0">
+                        <select id="detTeacherSelect" onchange="assignTeacherToGenre()" class="flex-1 bg-white border border-slate-300 rounded px-1 py-0.5 text-[11px] cursor-pointer min-w-0 font-medium">
                             <option value="">-- 一覧から選んで割り当て --</option>
                         </select>
                     </div>
+                    <div id="detTeacherContactBox" class="hidden bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 text-[10px] text-emerald-900 leading-relaxed"></div>
                 </div>
                 
                 <div class="space-y-1">
@@ -183,7 +194,7 @@
                 </div>
                 <div id="adminTeacherArea" class="hidden space-y-3">
                     <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-2">
-                        <input type="text" id="newTeaName" placeholder="氏名" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaContact" placeholder="連絡先" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaGenre" placeholder="対応ジャンル" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaNote" placeholder="メモ" class="w-full bg-white border p-1.5 rounded text-xs">
+                        <input type="text" id="newTeaName" placeholder="氏名" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaContact" placeholder="連絡先" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaGenre" placeholder="対応ジャン" class="w-full bg-white border p-1.5 rounded text-xs"><input type="text" id="newTeaNote" placeholder="メモ" class="w-full bg-white border p-1.5 rounded text-xs">
                         <button onclick="addTeacherSubmit()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer">講師を登録</button>
                     </div>
                     <div id="adminTeacherList" class="space-y-1 max-h-40 overflow-y-auto"></div>
@@ -206,22 +217,14 @@
 
         window.addEventListener('DOMContentLoaded', () => { refreshAllData(); });
 
-        // 💡 Loading画面の表示・非表示を切り替える関数
         function showLoading(show) {
             const overlay = document.getElementById('loadingOverlay');
-            if (show) {
-                overlay.classList.remove('hidden');
-                overlay.style.opacity = '1';
-            } else {
-                overlay.style.opacity = '0';
-                // フェードアウトの猶予を持たせてから非表示にする
-                setTimeout(() => { overlay.classList.add('hidden'); }, 300);
-            }
+            if (show) { overlay.classList.remove('hidden'); overlay.style.opacity = '1'; } 
+            else { overlay.style.opacity = '0'; setTimeout(() => { overlay.classList.add('hidden'); }, 300); }
         }
 
         function refreshAllData(quiet = false) {
-            if(!quiet) showLoading(true); // 読込開始時にぐるぐるをON
-            
+            if(!quiet) showLoading(true);
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "fetchAllData" }) })
             .then(res => res.json()).then(data => {
                 DB = data;
@@ -230,33 +233,51 @@
                 renderGlobalSchedules();
                 renderGlobalTaskList();
                 renderDashboardTasks();
-                showLoading(false); // 読込完了時にぐるぐるをOFF
-            }).catch(err => {
-                console.error(err);
+                renderFrontTeacherList(); // ★新設：メイン画面のアコーディオンリストを描画
+                if (currentGenreId) openGenreDetail(currentGenreId);
                 showLoading(false);
-                if(!quiet) alert("データ取得に失敗しました。");
-            });
+            }).catch(err => { console.error(err); showLoading(false); });
         }
 
-        // 時差（9時間戻っている可能性）を考慮して、正しい日本時間の「年月日」を取り出す関数
         function cleanDate(dateStr) {
             if (!dateStr) return '未定';
-            
-            // 日付オブジェクトに変換
-            const d = new Date(dateStr);
-            
-            // 変換に失敗した場合は、元の文字列の先頭10文字を返すフォールバック
-            if (isNaN(d.getTime())) {
-                let base = String(dateStr).substring(0, 10);
-                return base.replace(/-/g, '/');
+            const s = String(dateStr);
+            if (s.includes('T')) return s.split('T')[0].replace(/-/g, '/');
+            return s.replace(/-/g, '/');
+        }
+
+        // 💡【新機能】トップ画面の講師アコーディオンメニューの開閉制御
+        function toggleTeacherAccordion() {
+            const content = document.getElementById('teacherAccordionContent');
+            const icon = document.getElementById('teacherAccordionIcon');
+            content.classList.toggle('hidden');
+            if (content.classList.contains('hidden')) {
+                icon.innerText = '▼ Expand';
+            } else {
+                icon.innerText = '▲ Collapse';
             }
-            
-            // UTCで「15:00」等になってズレるのを防ぐため、ローカル（日本時間）の年月日を取得
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            
-            return `${year}/${month}/${day}`;
+        }
+
+        // 💡【新機能】メイン画面用の講師連絡先リストを描画するロジック
+        function renderFrontTeacherList() {
+            const area = document.getElementById('teacherAccordionContent');
+            area.innerHTML = '';
+            if (!DB.teachers || DB.teachers.length === 0) {
+                area.innerHTML = '<p class="text-slate-400 italic text-center py-1">登録されている講師データはありません</p>';
+                return;
+            }
+            DB.teachers.forEach(t => {
+                area.innerHTML += `
+                    <div class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] leading-relaxed">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800">👨‍🏫 ${escapeHtml(t.name)}</span>
+                            <span class="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded text-[9px]">${escapeHtml(t.genre || '全般')}</span>
+                        </div>
+                        <div class="text-slate-600 mt-0.5">📱 連絡先: <span class="font-medium text-slate-900 selection:bg-yellow-200">${escapeHtml(t.contact || '未登録')}</span></div>
+                        ${t.note ? `<div class="text-slate-500 text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-100 mt-1">📝 ${escapeHtml(t.note)}</div>` : ''}
+                    </div>
+                `;
+            });
         }
 
         function updateDropdowns() {
@@ -271,7 +292,7 @@
             logSelect.innerHTML = '<option value="管理者">管理者</option>';
             taskStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
             if(globalStaffSelect) globalStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
-            dashStaffSelect.innerHTML = '<option value="">👤 全スタッフのタスクを確認</option>';
+            dashStaffSelect.innerHTML = '<option value="">👤 全スタッフのタスクを俯瞰</option>';
             
             if (DB.staffs) {
                 DB.staffs.forEach(s => {
@@ -389,7 +410,19 @@
             document.getElementById('detTitle').innerText = g.name; document.getElementById('detStaffName').innerText = `👤 メイン担当： ${g.staff}`; document.getElementById('detMemo').value = g.memo || '';
             const b = document.getElementById('detStatusBadge'); b.innerText = g.status;
             b.className = `text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600"}`;
+            
+            // 講師アサイン状態の同期
             document.getElementById('detTeacherSelect').value = g.teacherId || '';
+            
+            // 💡【新機能】部屋内に担当講師の連絡先・メモをその場でパッと表示する連動ロジック
+            const contactBox = document.getElementById('detTeacherContactBox');
+            if (g.teacherId) {
+                const tea = DB.teachers.find(t => t.id === g.teacherId);
+                if (tea) {
+                    contactBox.innerHTML = `💬 <strong>${escapeHtml(tea.name)}先生の連絡先:</strong> ${escapeHtml(tea.contact || '未設定')}${tea.note ? '<br>📝 ' + escapeHtml(tea.note) : ''}`;
+                    contactBox.classList.remove('hidden');
+                } else { contactBox.classList.add('hidden'); }
+            } else { contactBox.classList.add('hidden'); }
 
             const sArea = document.getElementById('detScheduleList'); sArea.innerHTML = '';
             DB.schedules.filter(s => s.genreId === id).forEach(s => {
@@ -529,7 +562,6 @@
             if(res==='講師') DB.teachers = DB.teachers.filter(t => t.id !== id);
             if(res==='スタッフ') DB.staffs = DB.staffs.filter(s => s.id !== id);
             if(res==='タスク') DB.tasks = DB.tasks ? DB.tasks.filter(t => t.id !== id) : [];
-            
             if (currentGenreId) openGenreDetail(currentGenreId);
             renderGlobalSchedules(); renderAdminTeacherList(); renderAdminStaffList(); renderGlobalTaskList(); renderDashboardTasks(); updateDropdowns();
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: res, action: "delete", id }) }).then(() => refreshAllData(true)); 
