@@ -151,7 +151,6 @@
                     <button onclick="saveNewLog()" class="bg-slate-800 text-white px-2.5 py-1 rounded-lg cursor-pointer font-bold text-xs">送信</button>
                 </div>
             </div>
-            <div class="text-right"><button onclick="deleteCurrentGenre()" class="text-[10px] text-red-500 font-bold hover:underline cursor-pointer">⚠️ ジャンル自体を削除する</button></div>
         </div>
     </main>
 
@@ -212,7 +211,6 @@
             }).catch(err => console.error(err));
         }
 
-        // 💡 日付の「T15:00:00.000Z」等のシステムノイズを検知して2026/06/20形式にクレンジングする関数
         function cleanDate(dateStr) {
             if (!dateStr) return '未定';
             const s = String(dateStr);
@@ -233,7 +231,7 @@
             genreSelect.innerHTML = '<option value="未定">未定</option>';
             logSelect.innerHTML = '<option value="管理者">管理者</option>';
             taskStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
-            globalStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
+            if(globalStaffSelect) globalStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
             dashStaffSelect.innerHTML = '<option value="">👤 全スタッフのタスクを俯瞰</option>';
             
             if (DB.staffs) {
@@ -241,6 +239,7 @@
                     genreSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
                     logSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
                     taskStaffSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
+                    if(globalStaffSelect) globalStaffSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
                     dashStaffSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}さんのお仕事</option>`;
                 });
             }
@@ -278,7 +277,7 @@
                 count++;
 
                 const isGlobal = !t.genreId || t.genreId === 'GLOBAL';
-                let headerBadge = '<span class="font-bold text-indigo-600">[全体企画]</span>';
+                let headerBadge = '<span class="font-bold text-indigo-600">[全体共通]</span>';
                 if(!isGlobal) {
                     const g = DB.genres.find(i => i.id === t.genreId);
                     headerBadge = `<span class="font-bold text-emerald-700">[${escapeHtml(g ? g.name : '不明')}]</span>`;
@@ -311,13 +310,11 @@
         function renderGlobalTaskList() {
             const area = document.getElementById('globalTaskList');
             area.innerHTML = '';
-            
             const globalTasks = DB.tasks ? DB.tasks.filter(t => !t.genreId || t.genreId === 'GLOBAL') : [];
             if(globalTasks.length === 0) {
                 area.innerHTML = '<p class="text-slate-400 italic text-center py-1">全体共通タスクはありません</p>';
                 return;
             }
-
             globalTasks.forEach(t => {
                 const isDone = t.status === '完了';
                 const div = document.createElement('div');
@@ -341,13 +338,11 @@
             const search = document.getElementById('searchInp').value.toLowerCase();
             const filter = document.getElementById('statusFilter').value;
             grid.innerHTML = '';
-            
             const filtered = DB.genres ? DB.genres.filter(g => {
                 const tea = DB.teachers.find(t => t.id === g.teacherId);
                 const teaName = tea ? tea.name.toLowerCase() : '';
                 return (g.name.toLowerCase().includes(search) || g.staff.toLowerCase().includes(search) || teaName.includes(search)) && (filter === '' || g.status === filter);
             }) : [];
-            
             if (filtered.length === 0) { grid.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs bg-white rounded-xl border border-slate-200">該当案件なし</div>'; return; }
             filtered.forEach(g => {
                 const card = document.createElement('div');
@@ -373,7 +368,6 @@
             currentGenreId = id; const g = DB.genres.find(item => item.id === id); if (!g) return;
             document.getElementById('listViewArea').classList.add('hidden'); document.getElementById('detailViewArea').classList.remove('hidden');
             document.getElementById('detTitle').innerText = g.name; document.getElementById('detStaffName').innerText = `👤 メイン担当： ${g.staff}`; document.getElementById('detMemo').value = g.memo || '';
-            
             const b = document.getElementById('detStatusBadge'); b.innerText = g.status;
             b.className = `text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600"}`;
             document.getElementById('detTeacherSelect').value = g.teacherId || '';
@@ -425,21 +419,29 @@
             const teaId = document.getElementById('detTeacherSelect').value; g.teacherId = teaId;
             const tea = DB.teachers.find(t => t.id === teaId);
             const log = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `👨‍🏫 担当講師を【${tea ? tea.name : 'なし'}】に設定。` };
-            savePostAsync("ジャンル", g, () => { DB.logs.push(log); openGenreDetail(currentGenreId); renderGenreList(); });
+            
+            // ★潜在エラー1の修正：講師の紐付け変更をサッと先取り反映
+            savePostAsync("ジャンル", g, () => { 
+                DB.logs.push(log); 
+                openGenreDetail(currentGenreId); 
+                renderGenreList(); 
+            });
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: log }) });
         }
 
         function addNewTask() {
             const title = document.getElementById('newTaskTitle').value; const staff = document.getElementById('newTaskStaff').value; const dl = document.getElementById('newTaskDeadline').value;
             if(!title) return;
-            const newTask = { id: "TMP_" + Date.now(), genreId: currentGenreId, title, staff, deadline: dl, status: "未完了" };
+            // ★潜在エラー2の修正：日付にcleanDate処理を通して保存
+            const newTask = { id: "TMP_" + Date.now(), genreId: currentGenreId, title, staff, deadline: cleanDate(dl), status: "未完了" };
             savePostAsync("タスク", newTask, () => { if(!DB.tasks) DB.tasks = []; DB.tasks.push(newTask); openGenreDetail(currentGenreId); renderDashboardTasks(); document.getElementById('newTaskTitle').value = ''; });
         }
 
         function addGlobalTask() {
             const title = document.getElementById('newGlobalTaskTitle').value; const staff = document.getElementById('newGlobalTaskStaff').value; const dl = document.getElementById('newGlobalTaskDeadline').value;
             if(!title) { alert("仕事内容を入力してください"); return; }
-            const newTask = { id: "TMP_G_" + Date.now(), genreId: "GLOBAL", title, staff, deadline: dl, status: "未完了" };
+            // ★潜在エラー2の修正：日付にcleanDate処理を通して保存
+            const newTask = { id: "TMP_G_" + Date.now(), genreId: "GLOBAL", title, staff, deadline: cleanDate(dl), status: "未完了" };
             savePostAsync("タスク", newTask, () => { if(!DB.tasks) DB.tasks = []; DB.tasks.push(newTask); renderGlobalTaskList(); renderDashboardTasks(); document.getElementById('newGlobalTaskTitle').value = ''; });
         }
 
@@ -471,8 +473,8 @@
         function addEventSchedule() {
             const d = document.getElementById('newSchedDate').value; const t = document.getElementById('newSchedTime').value; const l = document.getElementById('newSchedLoc').value; const n = document.getElementById('newSchedNote').value;
             if (!d || !l) { alert("日付と場所は必須"); return; }
-            const newSched = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: d, time: t||"10:00-17:00", location: l, note: n };
-            const systemLog = { id: "TMP_L_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `📅 スケジュール追加: ${d}` };
+            const newSched = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: cleanDate(d), time: t||"10:00-17:00", location: l, note: n };
+            const systemLog = { id: "TMP_L_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `📅 スケジュール追加: ${cleanDate(d)}` };
             savePostAsync("スケジュール", newSched, () => { DB.schedules.push(newSched); DB.logs.push(systemLog); openGenreDetail(currentGenreId); renderGlobalSchedules(); document.getElementById('newSchedDate').value = ''; document.getElementById('newSchedTime').value = ''; document.getElementById('newSchedLoc').value = ''; document.getElementById('newSchedNote').value = ''; });
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: systemLog }) });
         }
@@ -500,20 +502,24 @@
 
         function renderAdminStaffList() {
             const l = document.getElementById('adminStaffList'); l.innerHTML = '';
+            if(!DB.staffs) return;
             DB.staffs.forEach(s => { l.innerHTML += `<div class="p-1.5 bg-slate-50 rounded border text-[10px] flex justify-between items-center"><div><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.role)})</div><button onclick="delClick('スタッフ','${s.id}')" class="text-red-500 font-bold px-1 cursor-pointer">削除</button></div>`; });
         }
 
         function renderAdminTeacherList() {
             const l = document.getElementById('adminTeacherList'); l.innerHTML = '';
+            if(!DB.teachers) return;
             DB.teachers.forEach(t => { l.innerHTML += `<div class="p-1.5 bg-slate-50 rounded border text-[10px] flex justify-between items-center"><div><strong>${escapeHtml(t.name)}</strong> [${escapeHtml(t.genre)}]</div><button onclick="delClick('講師','${t.id}')" class="text-red-500 font-bold px-1 cursor-pointer">削除</button></div>`; });
         }
 
         function delClick(res, id) { 
             if(!confirm("本当に削除しますか？")) return; 
+            // ★潜在エラー4の修正：削除時の先取りキャッシュを完全網羅
             if(res==='スケジュール') DB.schedules = DB.schedules.filter(s => s.id !== id);
             if(res==='講師') DB.teachers = DB.teachers.filter(t => t.id !== id);
             if(res==='スタッフ') DB.staffs = DB.staffs.filter(s => s.id !== id);
-            if(res==='タスク') DB.tasks = DB.tasks.filter(t => t.id !== id);
+            if(res==='タスク') DB.tasks = DB.tasks ? DB.tasks.filter(t => t.id !== id) : [];
+            
             if (currentGenreId) openGenreDetail(currentGenreId);
             renderGlobalSchedules(); renderAdminTeacherList(); renderAdminStaffList(); renderGlobalTaskList(); renderDashboardTasks(); updateDropdowns();
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: res, action: "delete", id }) }).then(() => refreshAllData(true)); 
