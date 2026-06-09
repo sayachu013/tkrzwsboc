@@ -238,11 +238,25 @@
             });
         }
 
+        // 時差（9時間戻っている可能性）を考慮して、正しい日本時間の「年月日」を取り出す関数
         function cleanDate(dateStr) {
             if (!dateStr) return '未定';
-            const s = String(dateStr);
-            if (s.includes('T')) return s.split('T')[0].replace(/-/g, '/');
-            return s.replace(/-/g, '/');
+            
+            // 日付オブジェクトに変換
+            const d = new Date(dateStr);
+            
+            // 変換に失敗した場合は、元の文字列の先頭10文字を返すフォールバック
+            if (isNaN(d.getTime())) {
+                let base = String(dateStr).substring(0, 10);
+                return base.replace(/-/g, '/');
+            }
+            
+            // UTCで「15:00」等になってズレるのを防ぐため、ローカル（日本時間）の年月日を取得
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            
+            return `${year}/${month}/${day}`;
         }
 
         function updateDropdowns() {
