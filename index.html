@@ -7,9 +7,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>body { font-family: 'Helvetica Neue', Arial, sans-serif; }</style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-12 text-slate-800">
+<body class="bg-slate-50 min-h-screen pb-12 text-slate-800 relative">
 
-    <header class="bg-emerald-600 text-white flex justify-between items-center px-3 py-3 shadow-md sticky top-0 z-50 gap-2">
+    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex flex-col items-center justify-center gap-3 transition-opacity duration-300">
+        <div class="bg-white p-5 rounded-2xl shadow-xl flex flex-col items-center gap-3 border border-slate-100 max-w-[200px] w-full">
+            <div class="w-9 h-9 border-4 border-emerald-600/20 border-t-emerald-600 rounded-full animate-spin"></div>
+            <span class="text-xs font-bold text-slate-500 tracking-wider">最新データを読込中...</span>
+        </div>
+    </div>
+
+    <header class="bg-emerald-600 text-white flex justify-between items-center px-3 py-3 shadow-md sticky top-0 z-40 gap-2">
         <div class="flex flex-col min-w-0 flex-1">
             <span class="font-bold text-sm tracking-wide truncate">🌲 緑町base 総合運営マネージャー</span>
             <span class="text-[9px] text-emerald-100 font-semibold truncate">タスク・スケジュール・スタッフ連動</span>
@@ -199,7 +206,22 @@
 
         window.addEventListener('DOMContentLoaded', () => { refreshAllData(); });
 
+        // 💡 Loading画面の表示・非表示を切り替える関数
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+                overlay.style.opacity = '1';
+            } else {
+                overlay.style.opacity = '0';
+                // フェードアウトの猶予を持たせてから非表示にする
+                setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+            }
+        }
+
         function refreshAllData(quiet = false) {
+            if(!quiet) showLoading(true); // 読込開始時にぐるぐるをON
+            
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "fetchAllData" }) })
             .then(res => res.json()).then(data => {
                 DB = data;
@@ -208,15 +230,18 @@
                 renderGlobalSchedules();
                 renderGlobalTaskList();
                 renderDashboardTasks();
-            }).catch(err => console.error(err));
+                showLoading(false); // 読込完了時にぐるぐるをOFF
+            }).catch(err => {
+                console.error(err);
+                showLoading(false);
+                if(!quiet) alert("データ取得に失敗しました。");
+            });
         }
 
         function cleanDate(dateStr) {
             if (!dateStr) return '未定';
             const s = String(dateStr);
-            if (s.includes('T')) {
-                return s.split('T')[0].replace(/-/g, '/');
-            }
+            if (s.includes('T')) return s.split('T')[0].replace(/-/g, '/');
             return s.replace(/-/g, '/');
         }
 
@@ -260,11 +285,7 @@
             const area = document.getElementById('dashboardTaskList');
             const filterStaff = document.getElementById('staffFilterDashboard').value;
             area.innerHTML = '';
-            
-            if(!DB.tasks || DB.tasks.length === 0) {
-                area.innerHTML = '<p class="text-slate-400 italic text-center py-2">アサインされているタスクはありません</p>';
-                return;
-            }
+            if(!DB.tasks || DB.tasks.length === 0) { area.innerHTML = '<p class="text-slate-400 italic text-center py-2">タスクはありません</p>'; return; }
 
             const sortedTasks = [...DB.tasks].sort((a,b) => {
                 if(a.status === b.status) return new Date(a.deadline) - new Date(b.deadline);
@@ -275,46 +296,31 @@
             sortedTasks.forEach(t => {
                 if(filterStaff !== '' && t.staff !== filterStaff) return;
                 count++;
-
                 const isGlobal = !t.genreId || t.genreId === 'GLOBAL';
                 let headerBadge = '<span class="font-bold text-indigo-600">[全体共通]</span>';
                 if(!isGlobal) {
                     const g = DB.genres.find(i => i.id === t.genreId);
                     headerBadge = `<span class="font-bold text-emerald-700">[${escapeHtml(g ? g.name : '不明')}]</span>`;
                 }
-
                 const isDone = t.status === '完了';
                 const div = document.createElement('div');
                 div.className = `p-2 rounded-lg border flex items-center justify-between gap-2 ${isDone ? 'bg-slate-100 border-slate-200 text-slate-400 line-through' : 'bg-white border-rose-100 shadow-3xs'}`;
-                
                 div.innerHTML = `
                     <div class="min-w-0 flex-1 space-y-0.5">
-                        <div class="text-slate-700 ${isDone?'text-slate-400':''} text-[11px] leading-tight breakdown-all">
-                            ${headerBadge} <span>${escapeHtml(t.title)}</span>
-                        </div>
-                        <div class="flex items-center gap-3 text-[10px] text-slate-400">
-                            <span>担当: <strong class="text-slate-600">${escapeHtml(t.staff)}</strong></span>
-                            <span class="${!isDone ? 'text-rose-500 font-bold' : ''}">⏰ ${cleanDate(t.deadline)}</span>
-                        </div>
+                        <div class="text-slate-700 ${isDone?'text-slate-400':''} text-[11px] leading-tight breakdown-all">${headerBadge} <span>${escapeHtml(t.title)}</span></div>
+                        <div class="flex items-center gap-3 text-[10px] text-slate-400"><span>担当: <strong class="text-slate-600">${escapeHtml(t.staff)}</strong></span><span class="${!isDone ? 'text-rose-500 font-bold' : ''}">⏰ ${cleanDate(t.deadline)}</span></div>
                     </div>
-                    <button onclick="toggleTaskDashboard('${t.id}')" class="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 cursor-pointer whitespace-nowrap shadow-3xs ${isDone ? 'bg-slate-200 text-slate-500' : 'bg-rose-600 text-white hover:bg-rose-700'}">
-                        ${isDone ? '戻す' : '完了'}
-                    </button>
+                    <button onclick="toggleTaskDashboard('${t.id}')" class="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 cursor-pointer whitespace-nowrap shadow-3xs ${isDone ? 'bg-slate-200 text-slate-500' : 'bg-rose-600 text-white hover:bg-rose-700'}">${isDone ? '戻す' : '完了'}</button>
                 `;
                 area.appendChild(div);
             });
-
             if(count === 0) area.innerHTML = '<p class="text-slate-400 italic text-center py-2">該当するタスクはありません</p>';
         }
 
         function renderGlobalTaskList() {
-            const area = document.getElementById('globalTaskList');
-            area.innerHTML = '';
+            const area = document.getElementById('globalTaskList'); area.innerHTML = '';
             const globalTasks = DB.tasks ? DB.tasks.filter(t => !t.genreId || t.genreId === 'GLOBAL') : [];
-            if(globalTasks.length === 0) {
-                area.innerHTML = '<p class="text-slate-400 italic text-center py-1">全体共通タスクはありません</p>';
-                return;
-            }
+            if(globalTasks.length === 0) { area.innerHTML = '<p class="text-slate-400 italic text-center py-1">全体共通タスクはありません</p>'; return; }
             globalTasks.forEach(t => {
                 const isDone = t.status === '完了';
                 const div = document.createElement('div');
@@ -340,8 +346,7 @@
             grid.innerHTML = '';
             const filtered = DB.genres ? DB.genres.filter(g => {
                 const tea = DB.teachers.find(t => t.id === g.teacherId);
-                const teaName = tea ? tea.name.toLowerCase() : '';
-                return (g.name.toLowerCase().includes(search) || g.staff.toLowerCase().includes(search) || teaName.includes(search)) && (filter === '' || g.status === filter);
+                return (g.name.toLowerCase().includes(search) || g.staff.toLowerCase().includes(search) || (tea && tea.name.toLowerCase().includes(search))) && (filter === '' || g.status === filter);
             }) : [];
             if (filtered.length === 0) { grid.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs bg-white rounded-xl border border-slate-200">該当案件なし</div>'; return; }
             filtered.forEach(g => {
@@ -419,20 +424,13 @@
             const teaId = document.getElementById('detTeacherSelect').value; g.teacherId = teaId;
             const tea = DB.teachers.find(t => t.id === teaId);
             const log = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `👨‍🏫 担当講師を【${tea ? tea.name : 'なし'}】に設定。` };
-            
-            // ★潜在エラー1の修正：講師の紐付け変更をサッと先取り反映
-            savePostAsync("ジャンル", g, () => { 
-                DB.logs.push(log); 
-                openGenreDetail(currentGenreId); 
-                renderGenreList(); 
-            });
+            savePostAsync("ジャンル", g, () => { DB.logs.push(log); openGenreDetail(currentGenreId); renderGenreList(); });
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: log }) });
         }
 
         function addNewTask() {
             const title = document.getElementById('newTaskTitle').value; const staff = document.getElementById('newTaskStaff').value; const dl = document.getElementById('newTaskDeadline').value;
             if(!title) return;
-            // ★潜在エラー2の修正：日付にcleanDate処理を通して保存
             const newTask = { id: "TMP_" + Date.now(), genreId: currentGenreId, title, staff, deadline: cleanDate(dl), status: "未完了" };
             savePostAsync("タスク", newTask, () => { if(!DB.tasks) DB.tasks = []; DB.tasks.push(newTask); openGenreDetail(currentGenreId); renderDashboardTasks(); document.getElementById('newTaskTitle').value = ''; });
         }
@@ -440,7 +438,6 @@
         function addGlobalTask() {
             const title = document.getElementById('newGlobalTaskTitle').value; const staff = document.getElementById('newGlobalTaskStaff').value; const dl = document.getElementById('newGlobalTaskDeadline').value;
             if(!title) { alert("仕事内容を入力してください"); return; }
-            // ★潜在エラー2の修正：日付にcleanDate処理を通して保存
             const newTask = { id: "TMP_G_" + Date.now(), genreId: "GLOBAL", title, staff, deadline: cleanDate(dl), status: "未完了" };
             savePostAsync("タスク", newTask, () => { if(!DB.tasks) DB.tasks = []; DB.tasks.push(newTask); renderGlobalTaskList(); renderDashboardTasks(); document.getElementById('newGlobalTaskTitle').value = ''; });
         }
@@ -514,7 +511,6 @@
 
         function delClick(res, id) { 
             if(!confirm("本当に削除しますか？")) return; 
-            // ★潜在エラー4の修正：削除時の先取りキャッシュを完全網羅
             if(res==='スケジュール') DB.schedules = DB.schedules.filter(s => s.id !== id);
             if(res==='講師') DB.teachers = DB.teachers.filter(t => t.id !== id);
             if(res==='スタッフ') DB.staffs = DB.staffs.filter(s => s.id !== id);
