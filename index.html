@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>緑町base リアル・オープンキャンパス管理</title>
+    <title>緑町base 総合タスク＆運営管理ツール</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>body { font-family: 'Helvetica Neue', Arial, sans-serif; }</style>
 </head>
@@ -11,84 +11,161 @@
 
     <header class="bg-emerald-600 text-white flex justify-between items-center px-4 py-4 shadow-md sticky top-0 z-50">
         <div class="flex flex-col">
-            <span class="font-bold text-base tracking-wide">🌲 緑町base リアル・オープンキャンパス</span>
-            <span class="text-[10px] text-emerald-100 font-semibold">総合一元管理システム</span>
+            <span class="font-bold text-base tracking-wide">🌲 緑町base 総合運営マネージャー</span>
+            <span class="text-[10px] text-emerald-100 font-semibold">タスク・スケジュール・スタッフ連動アプリ</span>
         </div>
         <button onclick="toggleAdminModal()" class="bg-emerald-700 hover:bg-emerald-800 text-xs font-bold py-1.5 px-3 rounded-lg cursor-pointer">👥 マスター管理</button>
     </header>
 
     <main class="max-w-md mx-auto px-4 mt-5">
+        <!-- ================= 一覧画面（トップビュー） ================= -->
         <div id="listViewArea" class="space-y-5">
-            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
-                <h3 class="text-xs font-bold text-amber-800 border-b border-amber-200 pb-2 mb-2">📅 【全体俯瞰】直近のイベントスケジュール</h3>
-                <div id="globalScheduleList" class="space-y-2 max-h-40 overflow-y-auto pr-1 text-[11px] text-amber-950"></div>
+            
+            <!-- 【リマインドボード】スタッフ別ToDo状況（共通タスクもここに集約されます） -->
+            <div class="bg-rose-50 border-2 border-rose-200 rounded-xl p-4 shadow-xs">
+                <h3 class="text-xs font-bold text-rose-800 flex items-center gap-1.5 border-b border-rose-200 pb-2 mb-2">
+                    📢 【仕事アサイン・リマインド】スタッフ別ToDo状況
+                </h3>
+                <div class="flex gap-2 mb-2">
+                    <select id="staffFilterDashboard" onchange="renderDashboardTasks()" class="w-full bg-white border border-rose-200 rounded p-1 text-xs font-bold cursor-pointer">
+                        <option value="">👤 全スタッフのタスクを俯瞰</option>
+                    </select>
+                </div>
+                <div id="dashboardTaskList" class="space-y-2 max-h-44 overflow-y-auto pr-1 text-[11px]"></div>
             </div>
 
+            <!-- ★【新機能】全体企画に関わる共通タスク（イベントに紐づかない全体業務） -->
+            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-indigo-800 flex items-center gap-1.5 border-b border-indigo-200 pb-2">
+                    📢 企画全体に関わる共通タスク・仕事振り
+                </h3>
+                <div id="globalTaskList" class="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs">
+                    <!-- 共通タスク一覧 -->
+                </div>
+                
+                <div class="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-2 text-[11px]">
+                    <span class="font-bold text-indigo-700 block">➕ 共通タスク（全体業務）を新しくアサイン</span>
+                    <input type="text" id="newGlobalTaskTitle" placeholder="仕事内容 (例: 共通参加依頼書類の作成、SNS発信)" class="w-full bg-slate-50 border border-slate-300 rounded p-1 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] text-slate-400 font-bold block">担当スタッフ</label>
+                            <select id="newGlobalTaskStaff" class="w-full bg-slate-50 border border-slate-300 rounded p-1 cursor-pointer"></select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 font-bold block">締切日</label>
+                            <input type="date" id="newGlobalTaskDeadline" class="w-full bg-slate-50 border border-slate-300 rounded p-1">
+                        </div>
+                    </div>
+                    <button onclick="addGlobalTask()" class="w-full bg-indigo-600 text-white font-bold py-1 rounded cursor-pointer text-[10px] hover:bg-indigo-700">全体共通タスクとしてスタッフに仕事を振る</button>
+                </div>
+            </div>
+
+            <!-- 全体横断イベントカレンダー -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <h3 class="text-xs font-bold text-amber-800 border-b border-amber-200 pb-2 mb-2">📅 【全体スケジュール】確定イベント一覧</h3>
+                <div id="globalScheduleList" class="space-y-2 max-h-28 overflow-y-auto pr-1 text-[11px] text-amber-950"></div>
+            </div>
+
+            <!-- 検索・絞り込み -->
             <div class="flex gap-2">
-                <input type="text" id="searchInp" oninput="renderGenreList()" placeholder="ジャンル名、担当者で検索..." class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
+                <input type="text" id="searchInp" oninput="renderGenreList()" placeholder="ジャンル、担当スタッフ、講師名で検索..." class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
                 <select id="statusFilter" onchange="renderGenreList()" class="bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm cursor-pointer">
                     <option value="">全状況</option><option value="未着手">未着手</option><option value="交渉中">交渉中</option><option value="確定">確定</option><option value="実施済">実施済</option>
                 </select>
             </div>
 
+            <!-- ジャンルカード一覧 -->
             <div>
-                <p class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider px-1">講義ジャンル・担当案件（タップで個別カルテへ）</p>
+                <p class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider px-1">講義ジャンル・個別プロジェクト（タップで部屋へ）</p>
                 <div id="genreGrid" class="space-y-3"></div>
             </div>
         </div>
 
+        <!-- ================= 個別部屋画面（カルテ） ================= -->
         <div id="detailViewArea" class="hidden space-y-5">
             <button onclick="backToListView()" class="text-sm font-bold text-emerald-600 bg-white border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-50 cursor-pointer">⬅ 一覧に戻る</button>
             
-            <div class="bg-white rounded-2xl p-5 border border-slate-200">
-                <div class="flex justify-between items-start mb-2">
+            <!-- ジャンル基本情報 & 講師アサインメニュー -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
+                <div class="flex justify-between items-start">
                     <h2 id="detTitle" class="text-lg font-bold text-slate-900 leading-tight"></h2>
                     <span id="detStatusBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap"></span>
                 </div>
-                <div id="detStaffName" class="text-xs text-slate-500 mb-4 pb-2 border-b border-slate-100"></div>
-                <div class="space-y-2">
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">📦 概要・必要備品・メモ</label>
-                    <textarea id="detMemo" rows="4" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-emerald-500" placeholder="必要な材料費や大人の帯同予定など..."></textarea>
+                <div class="text-xs text-slate-500 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <div id="detStaffName" class="font-medium">担当：未定</div>
+                    <div class="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-slate-200/60">
+                        <span class="font-bold text-slate-600 text-[11px] whitespace-nowrap">👨‍🏫 担当大人・講師:</span>
+                        <select id="detTeacherSelect" onchange="assignTeacherToGenre()" class="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[11px] font-semibold cursor-pointer">
+                            <option value="">-- 一覧から選んで割り当て --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">📦 概要・必要備品・メモ</label>
+                    <textarea id="detMemo" rows="3" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-emerald-500" placeholder="材料費や自由なメモ..."></textarea>
                     <div class="flex justify-between items-center pt-1">
                         <div class="flex gap-1">
-                            <button onclick="changeStatus('交渉中')" class="bg-amber-50 text-amber-700 text-[10px] px-2 py-1 rounded border border-amber-200 cursor-pointer">交渉中</button>
-                            <button onclick="changeStatus('確定')" class="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-1 rounded border border-emerald-200 cursor-pointer">確定</button>
-                            <button onclick="changeStatus('実施済')" class="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded border border-blue-200 cursor-pointer">実施済</button>
+                            <button onclick="changeStatus('交渉中')" class="bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded border border-amber-200 cursor-pointer">交渉中</button>
+                            <button onclick="changeStatus('確定')" class="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-0.5 rounded border border-emerald-200 cursor-pointer">確定</button>
+                            <button onclick="changeStatus('実施済')" class="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded border border-blue-200 cursor-pointer">実施済</button>
                         </div>
-                        <button onclick="saveGenreMemo()" class="bg-emerald-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg cursor-pointer hover:bg-emerald-700">💾 保存</button>
+                        <button onclick="saveGenreMemo()" class="bg-emerald-600 text-white text-xs font-bold py-1 px-3 rounded-lg cursor-pointer">💾 概要保存</button>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
-                <h3 class="font-bold text-sm text-slate-800">🗓 開催イベントスケジュール設定</h3>
-                <div id="detScheduleList" class="space-y-2 text-xs"></div>
+            <!-- イベント別準備タスク管理メニュー -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
+                <h3 class="font-bold text-sm text-slate-800 flex items-center gap-1">📋 掲示物作成・準備タスク・仕事振り管理</h3>
+                <div id="detTaskList" class="space-y-2 text-xs"></div>
+                
                 <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <span class="text-[11px] font-bold text-slate-600 block">➕ このプロジェクトに仕事・タスクをアサイン</span>
+                    <input type="text" id="newTaskTitle" placeholder="仕事内容 (例: ポスター用の写真撮影、講師にLINE連絡)" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] text-slate-400 font-bold block">誰に振る？(スタッフ)</label>
+                            <select id="newTaskStaff" class="w-full bg-white border border-slate-300 rounded p-1 text-xs cursor-pointer"></select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 font-bold block">締切日</label>
+                            <input type="date" id="newTaskDeadline" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
+                        </div>
+                    </div>
+                    <button onclick="addNewTask()" class="w-full bg-emerald-600 text-white font-bold py-1 rounded-lg cursor-pointer text-[11px]">スタッフにこの仕事をアサインする</button>
+                </div>
+            </div>
+
+            <!-- イベントスケジュール -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
+                <h3 class="font-bold text-sm text-slate-800">🗓 開催日時・イベントスケジュール設定</h3>
+                <div id="detScheduleList" class="space-y-2 text-xs"></div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-2">
                     <div class="grid grid-cols-2 gap-2">
                         <input type="date" id="newSchedDate" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
                         <input type="text" id="newSchedTime" placeholder="時間帯" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
                     </div>
                     <input type="text" id="newSchedLoc" placeholder="開催場所" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
                     <input type="text" id="newSchedNote" placeholder="備考" class="w-full bg-white border border-slate-300 rounded p-1 text-xs">
-                    <button onclick="addEventSchedule()" class="w-full bg-emerald-600 text-white font-bold py-1.5 rounded-lg cursor-pointer hover:bg-emerald-700">スケジュールを追加</button>
+                    <button onclick="addEventSchedule()" class="w-full bg-slate-700 text-white font-bold py-1 rounded-lg cursor-pointer">スケジュールを確定追加</button>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
+            <!-- タイムライン履歴 -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-3xs space-y-3">
                 <h3 class="font-bold text-sm text-slate-800">💬 交渉・進捗タイムライン履歴</h3>
-                <div id="detLogTimeline" class="space-y-3 max-h-52 overflow-y-auto pr-1 text-xs"></div>
-                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
-                    <div class="flex gap-2">
-                        <select id="logUser" class="bg-white border border-slate-300 rounded p-1 text-xs cursor-pointer"><option value="管理者">管理者</option></select>
-                        <input type="text" id="logText" placeholder="出来事を時系列に記録..." class="flex-1 bg-white border border-slate-300 rounded p-1 text-xs">
-                    </div>
-                    <button onclick="saveNewLog()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer hover:bg-slate-800">タイムラインに記録</button>
+                <div id="detLogTimeline" class="space-y-3 max-h-40 overflow-y-auto pr-1 text-xs"></div>
+                <div class="bg-slate-50 p-2 rounded-xl border border-slate-200 flex gap-2 text-xs">
+                    <select id="logUser" class="bg-white border border-slate-300 rounded p-1 text-xs cursor-pointer"><option value="管理者">管理者</option></select>
+                    <input type="text" id="logText" placeholder="履歴にメモを残す..." class="flex-1 bg-white border border-slate-300 rounded p-1 text-xs">
+                    <button onclick="saveNewLog()" class="bg-slate-800 text-white px-2 py-1 rounded cursor-pointer">送信</button>
                 </div>
             </div>
-            <div class="text-right"><button onclick="deleteCurrentGenre()" class="text-[11px] text-red-500 font-bold hover:underline cursor-pointer">⚠️ ジャンル自体を削除する</button></div>
         </div>
     </main>
 
+    <!-- マスター管理モーダル -->
     <div id="adminModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 shadow-2xl">
             <div class="px-5 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -111,15 +188,15 @@
                 </div>
                 <div id="adminTeacherArea" class="hidden space-y-3">
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-                        <input type="text" id="newTeaName" placeholder="氏名" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newTeaContact" placeholder="連絡先" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newTeaGenre" placeholder="ジャンル" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newTeaNote" placeholder="メモ" class="w-full bg-white border border-slate-300 rounded p-1.5">
+                        <input type="text" id="newTeaName" placeholder="氏名"><input type="text" id="newTeaContact" placeholder="連絡先"><input type="text" id="newTeaGenre" placeholder="ジャンル"><input type="text" id="newTeaNote" placeholder="メモ">
                         <button onclick="addTeacherSubmit()" class="w-full bg-slate-700 text-white font-bold py-1.5 rounded-lg cursor-pointer">講師を登録</button>
                     </div>
                     <div id="adminTeacherList" class="space-y-1 max-h-40 overflow-y-auto"></div>
                 </div>
                 <div id="adminStaffArea" class="hidden space-y-3">
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-                        <input type="text" id="newStaffName" placeholder="スタッフ名" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newStaffRole" placeholder="役割・学年" class="w-full bg-white border border-slate-300 rounded p-1.5"><input type="text" id="newStaffNote" placeholder="備考" class="w-full bg-white border border-slate-300 rounded p-1.5">
-                        <button onclick="addStaffSubmit()" class="w-full bg-emerald-600 text-white font-bold py-1.5 rounded-lg cursor-pointer">スタッフマスターに登録</button>
+                        <input type="text" id="newStaffName" placeholder="スタッフ名"><input type="text" id="newStaffRole" placeholder="役割・学年"><input type="text" id="newStaffNote" placeholder="備考">
+                        <button onclick="addStaffSubmit()" class="w-full bg-emerald-600 text-white font-bold py-1.5 rounded-lg cursor-pointer">スタッフを登録</button>
                     </div>
                     <div id="adminStaffList" class="space-y-1 max-h-40 overflow-y-auto"></div>
                 </div>
@@ -127,9 +204,10 @@
         </div>
     </div>
 
+    <!-- 制御スクリプト部 -->
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxA_vnFqSvbxsbgkj7HMu79L3jfEij0DVPKQvooiNLXICHLjRccQ2w2PqGbhKz5xJwtbQ/exec";
-        let DB = { genres: [], schedules: [], logs: [], teachers: [], staffs: [] };
+        let DB = { genres: [], schedules: [], logs: [], teachers: [], staffs: [], tasks: [] };
         let currentGenreId = null;
 
         window.addEventListener('DOMContentLoaded', () => { refreshAllData(); });
@@ -141,24 +219,126 @@
                 updateDropdowns();
                 renderGenreList();
                 renderGlobalSchedules();
-                if (currentGenreId) openGenreDetail(currentGenreId);
-            }).catch(err => {
-                console.error(err);
-                if(!quiet) alert("データ取得に失敗しました。");
-            });
+                renderGlobalTaskList(); // ★新設：全体タスク表示
+                renderDashboardTasks();
+            }).catch(err => console.error(err));
         }
 
         function updateDropdowns() {
             const genreSelect = document.getElementById('newGenreStaff');
             const logSelect = document.getElementById('logUser');
+            const taskStaffSelect = document.getElementById('newTaskStaff');
+            const globalStaffSelect = document.getElementById('newGlobalTaskStaff');
+            const dashStaffSelect = document.getElementById('staffFilterDashboard');
+            
+            const currentDashVal = dashStaffSelect.value;
+            
             genreSelect.innerHTML = '<option value="未定">未定</option>';
             logSelect.innerHTML = '<option value="管理者">管理者</option>';
+            taskStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
+            globalStaffSelect.innerHTML = '<option value="未定">全員 / 未定</option>';
+            dashStaffSelect.innerHTML = '<option value="">👤 全スタッフのタスクを俯瞰</option>';
+            
             if (DB.staffs) {
                 DB.staffs.forEach(s => {
                     genreSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
                     logSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
+                    taskStaffSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
+                    globalStaffSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`;
+                    dashStaffSelect.innerHTML += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}さんのお仕事</option>`;
                 });
             }
+            dashStaffSelect.value = currentDashVal;
+
+            const teaSelect = document.getElementById('detTeacherSelect');
+            if(teaSelect) {
+                teaSelect.innerHTML = '<option value="">-- 一覧から選んで割り当て --</option>';
+                if(DB.teachers) {
+                    DB.teachers.forEach(t => {
+                        teaSelect.innerHTML += `<option value="${escapeHtml(t.id)}">👨‍🏫 ${escapeHtml(t.name)} (${escapeHtml(t.genre)})</option>`;
+                    });
+                }
+            }
+        }
+
+        // トップのリマインドボード描画（個別イベントタスク＋全体共通タスクを綺麗に一本化）
+        function renderDashboardTasks() {
+            const area = document.getElementById('dashboardTaskList');
+            const filterStaff = document.getElementById('staffFilterDashboard').value;
+            area.innerHTML = '';
+            
+            if(!DB.tasks || DB.tasks.length === 0) {
+                area.innerHTML = '<p class="text-slate-400 italic text-center py-2">アサインされているタスクはありません</p>';
+                return;
+            }
+
+            const sortedTasks = [...DB.tasks].sort((a,b) => {
+                if(a.status === b.status) return new Date(a.deadline) - new Date(b.deadline);
+                return a.status === '完了' ? 1 : -1;
+            });
+
+            let count = 0;
+            sortedTasks.forEach(t => {
+                if(filterStaff !== '' && t.staff !== filterStaff) return;
+                count++;
+
+                const isGlobal = !t.genreId || t.genreId === 'GLOBAL';
+                let headerBadge = '<span class="font-bold text-indigo-600">[全体企画業務]</span>';
+                if(!isGlobal) {
+                    const g = DB.genres.find(i => i.id === t.genreId);
+                    headerBadge = `<span class="font-bold text-emerald-700">[${escapeHtml(g ? g.name : '不明')}]</span>`;
+                }
+
+                const isDone = t.status === '完了';
+                const div = document.createElement('div');
+                div.className = `p-2 rounded-lg border ${isDone ? 'bg-slate-100 border-slate-200 text-slate-400 line-through' : 'bg-white border-rose-100 shadow-3xs'}`;
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start gap-1">
+                        <div>
+                            ${headerBadge} <span>${escapeHtml(t.title)}</span>
+                        </div>
+                        <button onclick="toggleTaskDashboard('${t.id}')" class="text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer whitespace-nowrap ${isDone ? 'bg-slate-200 text-slate-500' : 'bg-rose-600 text-white hover:bg-rose-700'}">
+                            ${isDone ? '戻す' : '完了する'}
+                        </button>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1">
+                        <span>担当: <strong>${escapeHtml(t.staff)}</strong></span>
+                        <span class="${!isDone ? 'text-rose-500 font-bold' : ''}">⏰ 締切: ${escapeHtml(t.deadline || '未定')}</span>
+                    </div>
+                `;
+                area.appendChild(div);
+            });
+
+            if(count === 0) area.innerHTML = '<p class="text-slate-400 italic text-center py-2">該当するタスクはありません</p>';
+        }
+
+        // ★新設：ホーム画面用 全体共通タスクリストの描画
+        function renderGlobalTaskList() {
+            const area = document.getElementById('globalTaskList');
+            area.innerHTML = '';
+            
+            const globalTasks = DB.tasks ? DB.tasks.filter(t => !t.genreId || t.genreId === 'GLOBAL') : [];
+            if(globalTasks.length === 0) {
+                area.innerHTML = '<p class="text-slate-400 italic text-center py-2">全体共通タスクはありません</p>';
+                return;
+            }
+
+            globalTasks.forEach(t => {
+                const isDone = t.status === '完了';
+                area.innerHTML += `
+                    <div class="p-2 bg-white border border-indigo-100 rounded-lg flex justify-between items-center ${isDone ? 'text-slate-400 line-through bg-slate-50' : 'shadow-3xs'}">
+                        <div>
+                            <span class="font-semibold text-slate-800">${escapeHtml(t.title)}</span>
+                            <span class="block text-[10px] text-slate-400">担当: ${escapeHtml(t.staff)} ｜ ⏳ 締切: ${escapeHtml(t.deadline || '未定')}</span>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="toggleTaskDashboard('${t.id}')" class="text-[9px] font-bold bg-slate-100 border border-slate-300 px-1 py-0.5 rounded cursor-pointer">${isDone ? '戻す' : '完了'}</button>
+                            <button onclick="delClick('タスク','${t.id}')" class="text-red-400 text-[9px] hover:underline cursor-pointer">削除</button>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
         function renderGenreList() {
@@ -166,21 +346,27 @@
             const search = document.getElementById('searchInp').value.toLowerCase();
             const filter = document.getElementById('statusFilter').value;
             grid.innerHTML = '';
-            const filtered = DB.genres ? DB.genres.filter(g => (g.name.toLowerCase().includes(search) || g.staff.toLowerCase().includes(search)) && (filter === '' || g.status === filter)) : [];
+            
+            const filtered = DB.genres ? DB.genres.filter(g => {
+                const tea = DB.teachers.find(t => t.id === g.teacherId);
+                const teaName = tea ? tea.name.toLowerCase() : '';
+                return (g.name.toLowerCase().includes(search) || g.staff.toLowerCase().includes(search) || teaName.includes(search)) && (filter === '' || g.status === filter);
+            }) : [];
+            
             if (filtered.length === 0) { grid.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs bg-white rounded-xl border border-slate-200">該当案件なし</div>'; return; }
             filtered.forEach(g => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-xl p-4 shadow-2xs border border-slate-200 hover:border-emerald-400 cursor-pointer";
+                card.className = "bg-white rounded-xl p-4 border border-slate-200 hover:border-emerald-400 cursor-pointer shadow-3xs";
                 card.onclick = () => openGenreDetail(g.id);
-                let cls = g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600";
-                card.innerHTML = `<div class="flex justify-between items-start gap-2 mb-1"><h4 class="font-bold text-sm text-slate-900">${escapeHtml(g.name)}</h4><span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${cls}">${escapeHtml(g.status)}</span></div><div class="flex justify-between items-center text-[11px] text-slate-500"><span>👤 担当: ${escapeHtml(g.staff)}</span><span class="text-emerald-600 font-semibold text-[10px]">詳細 ➔</span></div>`;
+                const tea = DB.teachers.find(t => t.id === g.teacherId);
+                card.innerHTML = `<div class="flex justify-between items-start gap-2 mb-1"><h4 class="font-bold text-sm text-slate-900">${escapeHtml(g.name)}</h4><span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600"}">${escapeHtml(g.status)}</span></div><div class="flex justify-between items-center text-[11px] text-slate-500"><span>👤 担当: ${escapeHtml(g.staff)}${tea ? ' ｜ 👨‍🏫 ' + escapeHtml(tea.name) : ''}</span><span class="text-emerald-600 font-semibold text-[10px]">カルテ部屋へ ➔</span></div>`;
                 grid.appendChild(card);
             });
         }
 
         function renderGlobalSchedules() {
             const area = document.getElementById('globalScheduleList'); area.innerHTML = '';
-            if (!DB.schedules || DB.schedules.length === 0) { area.innerHTML = '<p class="text-slate-400 italic text-center py-1">未設定</p>'; return; }
+            if (!DB.schedules || DB.schedules.length === 0) { area.innerHTML = '<p class="text-slate-400 italic text-center py-1">スケジュール未設定</p>'; return; }
             const sorted = [...DB.schedules].sort((a, b) => new Date(a.date) - new Date(b.date));
             sorted.forEach(s => {
                 const g = DB.genres.find(i => i.id === s.genreId);
@@ -191,11 +377,12 @@
         function openGenreDetail(id) {
             currentGenreId = id; const g = DB.genres.find(item => item.id === id); if (!g) return;
             document.getElementById('listViewArea').classList.add('hidden'); document.getElementById('detailViewArea').classList.remove('hidden');
-            document.getElementById('detTitle').innerText = g.name; document.getElementById('detStaffName').innerText = `👤 担当スタッフ： ${g.staff}`; document.getElementById('detMemo').value = g.memo || '';
-            const b = document.getElementById('detStatusBadge'); b.innerText = g.status;
-            let cls = g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600";
-            b.className = `text-[11px] font-bold px-2.5 py-0.5 rounded-full ${cls}`;
+            document.getElementById('detTitle').innerText = g.name; document.getElementById('detStaffName').innerText = `👤 メイン担当： ${g.staff}`; document.getElementById('detMemo').value = g.memo || '';
             
+            const b = document.getElementById('detStatusBadge'); b.innerText = g.status;
+            b.className = `text-[11px] font-bold px-2.5 py-0.5 rounded-full ${g.status==='交渉中'?"bg-amber-100 text-amber-700":g.status==='確定'?"bg-emerald-100 text-emerald-700":g.status==='実施済'?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-600"}`;
+            document.getElementById('detTeacherSelect').value = g.teacherId || '';
+
             const sArea = document.getElementById('detScheduleList'); sArea.innerHTML = '';
             DB.schedules.filter(s => s.genreId === id).forEach(s => {
                 sArea.innerHTML += `<div class="bg-slate-50 border border-slate-200 rounded-lg p-2 flex justify-between items-center"><div><span class="font-bold text-emerald-700">📅 ${escapeHtml(s.date)} (${escapeHtml(s.time)})</span><br><span class="text-slate-600">📍 ${escapeHtml(s.location)}</span></div><button onclick="delClick('スケジュール','${s.id}')" class="text-red-400 font-bold text-[11px] cursor-pointer">削除</button></div>`;
@@ -205,138 +392,138 @@
             DB.logs.filter(l => l.genreId === id).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(l => {
                 lArea.innerHTML += `<div class="border-l-2 border-emerald-500 pl-3 py-0.5 relative"><div class="text-[10px] text-slate-400"><span class="font-bold text-slate-600">${escapeHtml(l.user)}</span> <span>${escapeHtml(l.date)}</span></div><div class="text-xs text-slate-700 font-medium">${escapeHtml(l.text)}</div></div>`;
             });
+
+            const tArea = document.getElementById('detTaskList'); tArea.innerHTML = '';
+            const myTasks = DB.tasks ? DB.tasks.filter(t => t.genreId === id) : [];
+            if(myTasks.length === 0){
+                tArea.innerHTML = '<p class="text-slate-400 italic text-center py-1">個別の準備タスクはありません</p>';
+            } else {
+                myTasks.forEach(t => {
+                    const isDone = t.status === '完了';
+                    tArea.innerHTML += `<div class="p-2 border rounded-lg flex justify-between items-center ${isDone?'bg-slate-50 text-slate-400 line-through':'bg-slate-50/50 border-slate-200'}"><div><span class="font-bold">${escapeHtml(t.title)}</span><span class="block text-[10px] text-slate-400">担当: ${escapeHtml(t.staff)} / ⏳ 締切: ${escapeHtml(t.deadline || '未定')}</span></div><div class="flex gap-2"><button onclick="toggleTaskInline('${t.id}')" class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 bg-white text-slate-700 cursor-pointer">${isDone?'戻す':'完了'}</button><button onclick="delClick('タスク','${t.id}')" class="text-red-400 text-[10px] hover:underline cursor-pointer">削除</button></div></div>`;
+                });
+            }
         }
 
         function backToListView() { currentGenreId = null; document.getElementById('detailViewArea').classList.add('hidden'); document.getElementById('listViewArea').classList.remove('hidden'); refreshAllData(true); }
         
-        // ★神速パッチコア：バックグラウンド非同期通信関数
         function savePostAsync(resource, data, onPreExecute) {
-            // 先取りで画面をサッと更新
             if(onPreExecute) onPreExecute();
-            
-            // 裏でGoogleと1秒通信
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource, action: "save", data }) })
-            .then(res => res.json()).then(res => {
-                if(!res.success) { alert("通信エラーが発生しました。"); refreshAllData(); }
-            }).catch(err => { console.error(err); refreshAllData(); });
+            .then(res => res.json()).then(res => { if(!res.success) refreshAllData(); }).catch(err => console.error(err));
+        }
+
+        function assignTeacherToGenre() {
+            const g = DB.genres.find(item => item.id === currentGenreId); if (!g) return;
+            const teaId = document.getElementById('detTeacherSelect').value; g.teacherId = teaId;
+            const tea = DB.teachers.find(t => t.id === teaId);
+            const log = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `👨‍🏫 担当講師を【${tea ? tea.name : 'なし'}】に設定。` };
+            savePostAsync("ジャンル", g, () => { DB.logs.push(log); openGenreDetail(currentGenreId); });
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: log }) });
+        }
+
+        // 💡 【機能改善】イベント別の準備タスクを追加
+        function addNewTask() {
+            const title = document.getElementById('newTaskTitle').value; const staff = document.getElementById('newTaskStaff').value; const dl = document.getElementById('newTaskDeadline').value;
+            if(!title) return;
+            const newTask = { id: "TMP_" + Date.now(), genreId: currentGenreId, title, staff, deadline: dl, status: "未完了" };
+            savePostAsync("タスク", newTask, () => { if(!DB.tasks) DB.tasks = []; DB.tasks.push(newTask); openGenreDetail(currentGenreId); renderDashboardTasks(); document.getElementById('newTaskTitle').value = ''; });
+        }
+
+        // ★【新機能】全体共通のタスクを追加
+        function addGlobalTask() {
+            const title = document.getElementById('newGlobalTaskTitle').value;
+            const staff = document.getElementById('newGlobalTaskStaff').value;
+            const dl = document.getElementById('newGlobalTaskDeadline').value;
+            if(!title) { alert("仕事内容を入力してください"); return; }
+
+            const newTask = { id: "TMP_G_" + Date.now(), genreId: "GLOBAL", title, staff, deadline: dl, status: "未完了" };
+            savePostAsync("タスク", newTask, () => {
+                if(!DB.tasks) DB.tasks = [];
+                DB.tasks.push(newTask);
+                renderGlobalTaskList(); // 共通一覧を即時更新
+                renderDashboardTasks();  // リマインドボードを即時更新
+                document.getElementById('newGlobalTaskTitle').value = '';
+            });
+        }
+
+        function toggleTaskInline(id) {
+            const t = DB.tasks.find(i => i.id === id); if(!t) return;
+            t.status = t.status === '完了' ? '未完了' : '完了';
+            savePostAsync("タスク", t, () => { openGenreDetail(currentGenreId); renderDashboardTasks(); });
+        }
+
+        function toggleTaskDashboard(id) {
+            const t = DB.tasks.find(i => i.id === id); if(!t) return;
+            t.status = t.status === '完了' ? '未完了' : '完了';
+            savePostAsync("タスク", t, () => { renderDashboardTasks(); renderGlobalTaskList(); if(currentGenreId) openGenreDetail(currentGenreId); });
         }
 
         function saveGenreMemo() {
             const g = DB.genres.find(item => item.id === currentGenreId); if (!g) return;
-            g.memo = document.getElementById('detMemo').value;
-            savePostAsync("ジャンル", g, () => { alert("保存しました(裏で同期中)"); });
+            g.memo = document.getElementById('detMemo').value; savePostAsync("ジャンル", g, () => { alert("概要を保存しました"); });
         }
 
         function changeStatus(st) {
             const g = DB.genres.find(item => item.id === currentGenreId); if (!g) return;
             g.status = st;
-            
-            // システム自動タイムラインデータ生成
             const systemLog = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `ステータスを【${st}】に変更。` };
-            
-            savePostAsync("ジャンル", g, () => {
-                DB.logs.push(systemLog); // ログを先取り追加
-                openGenreDetail(currentGenreId); // 画面をすぐ切り替え
-            });
-            // サーバー側にもログを裏で送信
+            savePostAsync("ジャンル", g, () => { DB.logs.push(systemLog); openGenreDetail(currentGenreId); });
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: systemLog }) });
         }
 
         function addEventSchedule() {
             const d = document.getElementById('newSchedDate').value; const t = document.getElementById('newSchedTime').value; const l = document.getElementById('newSchedLoc').value; const n = document.getElementById('newSchedNote').value;
             if (!d || !l) { alert("日付と場所は必須"); return; }
-            
             const newSched = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: d, time: t||"10:00-17:00", location: l, note: n };
             const systemLog = { id: "TMP_L_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: "システム", text: `📅 スケジュール追加: ${d}` };
-
-            savePostAsync("スケジュール", newSched, () => {
-                DB.schedules.push(newSched);
-                DB.logs.push(systemLog);
-                openGenreDetail(currentGenreId);
-                renderGlobalSchedules();
-                document.getElementById('newSchedDate').value = ''; document.getElementById('newSchedTime').value = ''; document.getElementById('newSchedLoc').value = ''; document.getElementById('newSchedNote').value = '';
-            });
+            savePostAsync("スケジュール", newSched, () => { DB.schedules.push(newSched); DB.logs.push(systemLog); openGenreDetail(currentGenreId); renderGlobalSchedules(); document.getElementById('newSchedDate').value = ''; document.getElementById('newSchedTime').value = ''; document.getElementById('newSchedLoc').value = ''; document.getElementById('newSchedNote').value = ''; });
             fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "履歴", action: "save", data: systemLog }) });
         }
 
         function saveNewLog() {
             const u = document.getElementById('logUser').value; const t = document.getElementById('logText').value; if(!t) return;
             const newLog = { id: "TMP_" + Date.now(), genreId: currentGenreId, date: fmtDt(), user: u, text: t };
-            
-            savePostAsync("履歴", newLog, () => {
-                DB.logs.push(newLog);
-                openGenreDetail(currentGenreId);
-                document.getElementById('logText').value = '';
-            });
+            savePostAsync("履歴", newLog, () => { DB.logs.push(newLog); openGenreDetail(currentGenreId); document.getElementById('logText').value = ''; });
         }
 
         function addGenreSubmit() {
             const name = document.getElementById('newGenreName').value; const staff = document.getElementById('newGenreStaff').value; const status = document.getElementById('newGenreStatus').value; if(!name) return;
-            const newGenre = { id: "TMP_" + Date.now(), name, staff, status, memo: "" };
-            
-            savePostAsync("ジャンル", newGenre, () => {
-                DB.genres.push(newGenre);
-                renderGenreList();
-                document.getElementById('newGenreName').value = ''; toggleAdminModal();
-            });
+            savePostAsync("ジャンル", { name, staff, status, memo: "", teacherId: "" }, () => { refreshAllData(true); document.getElementById('newGenreName').value = ''; toggleAdminModal(); });
         }
 
         function addTeacherSubmit() {
             const name = document.getElementById('newTeaName').value; const contact = document.getElementById('newTeaContact').value; const genre = document.getElementById('newTeaGenre').value; const note = document.getElementById('newTeaNote').value; if(!name) return;
-            const newTea = { id: "TMP_" + Date.now(), name, contact, genre, note };
-            
-            savePostAsync("講師", newTea, () => {
-                DB.teachers.push(newTea);
-                renderAdminTeacherList();
-                document.getElementById('newTeaName').value = ''; document.getElementById('newTeaContact').value = ''; document.getElementById('newTeaGenre').value = ''; document.getElementById('newTeaNote').value = '';
-            });
+            savePostAsync("講師", { name, contact, genre, note }, () => { refreshAllData(true); document.getElementById('newTeaName').value = ''; document.getElementById('newTeaContact').value = ''; document.getElementById('newTeaGenre').value = ''; document.getElementById('newTeaNote').value = ''; });
         }
 
         function addStaffSubmit() {
             const name = document.getElementById('newStaffName').value; const role = document.getElementById('newStaffRole').value; const note = document.getElementById('newStaffNote').value; if(!name) return;
-            const newStaff = { id: "TMP_" + Date.now(), name, role, note };
-            
-            savePostAsync("スタッフ", newStaff, () => {
-                DB.staffs.push(newStaff);
-                updateDropdowns();
-                renderAdminStaffList();
-                document.getElementById('newStaffName').value = ''; document.getElementById('newStaffRole').value = ''; document.getElementById('newStaffNote').value = '';
-            });
+            savePostAsync("スタッフ", { name, role, note }, () => { refreshAllData(true); document.getElementById('newStaffName').value = ''; document.getElementById('newStaffRole').value = ''; document.getElementById('newStaffNote').value = ''; });
         }
 
         function renderAdminStaffList() {
             const l = document.getElementById('adminStaffList'); l.innerHTML = '';
-            if(!DB.staffs || DB.staffs.length === 0) { l.innerHTML = '<p class="text-slate-400 italic text-center py-1">未登録</p>'; return; }
             DB.staffs.forEach(s => { l.innerHTML += `<div class="p-1.5 bg-slate-50 rounded border text-[10px] flex justify-between items-center"><div><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.role)})</div><button onclick="delClick('スタッフ','${s.id}')" class="text-red-500 font-bold px-1 cursor-pointer">削除</button></div>`; });
         }
 
         function renderAdminTeacherList() {
             const l = document.getElementById('adminTeacherList'); l.innerHTML = '';
-            if(!DB.teachers || DB.teachers.length === 0) { l.innerHTML = '<p class="text-slate-400 italic text-center py-1">未登録</p>'; return; }
             DB.teachers.forEach(t => { l.innerHTML += `<div class="p-1.5 bg-slate-50 rounded border text-[10px] flex justify-between items-center"><div><strong>${escapeHtml(t.name)}</strong> [${escapeHtml(t.genre)}]</div><button onclick="delClick('講師','${t.id}')" class="text-red-500 font-bold px-1 cursor-pointer">削除</button></div>`; });
         }
 
         function delClick(res, id) { 
             if(!confirm("本当に削除しますか？")) return; 
-            // 削除も先取り反映
             if(res==='スケジュール') DB.schedules = DB.schedules.filter(s => s.id !== id);
             if(res==='講師') DB.teachers = DB.teachers.filter(t => t.id !== id);
             if(res==='スタッフ') DB.staffs = DB.staffs.filter(s => s.id !== id);
-            
+            if(res==='タスク') DB.tasks = DB.tasks.filter(t => t.id !== id);
             if (currentGenreId) openGenreDetail(currentGenreId);
-            renderGlobalSchedules(); renderAdminTeacherList(); renderAdminStaffList(); updateDropdowns();
-            
-            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: res, action: "delete", id }) })
-            .then(() => refreshAllData(true)); 
+            renderGlobalSchedules(); renderAdminTeacherList(); renderAdminStaffList(); renderGlobalTaskList(); renderDashboardTasks(); updateDropdowns();
+            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: res, action: "delete", id }) }).then(() => refreshAllData(true)); 
         }
         
-        function deleteCurrentGenre() { 
-            if(!confirm("案件自体を削除しますか？")) return; 
-            DB.genres = DB.genres.filter(g => g.id !== currentGenreId);
-            backToListView();
-            fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "ジャンル", action: "delete", id: currentGenreId }) }); 
-        }
-        
+        function deleteCurrentGenre() { if(!confirm("案件自体を削除しますか？")) return; DB.genres = DB.genres.filter(g => g.id !== currentGenreId); backToListView(); fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ resource: "ジャンル", action: "delete", id: currentGenreId }) }); }
         function toggleAdminModal() { const m = document.getElementById('adminModal'); m.classList.toggle('hidden'); if(!m.classList.contains('hidden')) { renderAdminTeacherList(); renderAdminStaffList(); } }
         
         function switchAdminTab(tab) {
